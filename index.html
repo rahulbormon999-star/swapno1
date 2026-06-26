@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্বপ্ন শাস্ত্র - AI Dream Interpreter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg:#ffffff; --sidebar-bg:#f8f8f8; --text:#0d0d0d; --subtext:#777;
+            --border:#e8e8e8; --msg-user:#efefef; --input-bg:#fff; --card:#ffffff;
+            --accent:#6c5ce7; --font:'Noto Sans Bengali',sans-serif;
+            --shadow:0 4px 24px rgba(108,92,231,.10);
+        }
+        [data-theme="dark"] {
+            --bg:#13131f; --sidebar-bg:#1a1a2e; --text:#e6e6f0; --subtext:#888;
+            --border:#2a2a40; --msg-user:#23233a; --input-bg:#1e1e32; --card:#1a1a2e;
+            --shadow:0 4px 24px rgba(0,0,0,.35);
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:var(--font);transition:background .25s,color .25s,border-color .25s}
+        body{display:flex;height:100dvh;background:var(--bg);color:var(--text);overflow:hidden}
+
+        /* Sidebar */
+        .sidebar{position:absolute;left:-290px;top:0;height:100%;width:272px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:left .28s ease;z-index:100}
+        .sidebar.open{left:0}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.22);z-index:90}
+        .overlay.active{display:block}
+        .sb-top{padding:24px 14px 14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--border)}
+        .rel-row{display:flex;gap:7px}
+        .rel-btn{flex:1;padding:9px 6px;border:1.5px solid var(--border);background:var(--card);color:var(--text);border-radius:10px;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;transition:.2s}
+        .rel-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+        .new-btn{padding:10px 14px;background:transparent;border:1.5px solid var(--border);color:var(--text);border-radius:10px;cursor:pointer;text-align:left;font-weight:700;font-family:var(--font);font-size:13.5px}
+        .new-btn:hover{background:var(--msg-user)}
+        .hist-list{flex:1;overflow-y:auto;padding:10px 8px}
+        .hist-item{padding:10px 12px;margin-bottom:4px;border-radius:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;user-select:none;color:var(--text)}
+        .hist-item:hover,.hist-item.on{background:var(--msg-user)}
+        .hist-item.press{background:#fde8e8}
+        .set-btn{padding:14px 18px;border-top:1px solid var(--border);cursor:pointer;color:var(--accent);display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
+        .set-btn:hover{background:var(--msg-user)}
+
+        /* Main */
+        .main{flex:1;display:flex;flex-direction:column;position:relative;min-width:0}
+        .topbar{padding:16px 20px 13px;display:flex;align-items:center;background:var(--bg);border-bottom:1px solid var(--border);z-index:10}
+        .menu-btn{background:none;border:none;font-size:20px;cursor:pointer;margin-right:14px;color:var(--subtext)}
+        .chat{flex:1;overflow-y:auto;padding:20px;padding-bottom:120px;scroll-behavior:smooth}
+
+        /* Messages */
+        .mw{display:flex;width:100%;margin-bottom:22px}
+        .mw.user{justify-content:flex-end}
+        .mw.ai{justify-content:flex-start}
+        .mb{max-width:86%;line-height:1.8}
+        .mc{font-size:15px;white-space:pre-wrap}
+        .mw.user .mc{background:var(--msg-user);color:var(--text);padding:11px 17px;border-radius:18px;border-bottom-right-radius:4px}
+        .mw.ai .mc{padding:6px 2px;color:var(--text)}
+        .typing{color:var(--subtext);font-style:italic;font-size:14px}
+
+        /* Input */
+        .inp-wrap{position:absolute;bottom:0;left:0;width:100%;padding:10px 18px 16px;background:linear-gradient(transparent 0%,var(--bg) 28%);display:flex;justify-content:center}
+        .inp-box{width:100%;max-width:700px;display:flex;align-items:flex-end;border:1.5px solid var(--border);border-radius:20px;background:var(--input-bg);box-shadow:var(--shadow);padding:4px 8px}
+        textarea{flex:1;max-height:140px;min-height:42px;padding:10px;border:none;outline:none;resize:none;font-size:15.5px;background:transparent;color:var(--text);font-family:var(--font)}
+        textarea::placeholder{color:var(--subtext);font-size:15px}
+        .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:10px;margin:5px 3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+        .send:hover{opacity:.88}
+        .send:disabled{background:#bbb;cursor:not-allowed}
+
+        /* Welcome */
+        .welcome{text-align:center;margin-top:60px;padding:24px}
+        .welcome .logo{font-size:62px;margin-bottom:14px}
+        .welcome h3{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
+        .welcome p{font-size:14px;color:var(--subtext)}
+
+        /* Full-page panels */
+        .fp{display:none;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:200;align-items:center;justify-content:center}
+        .fp.show{display:flex}
+        .fp-box{background:var(--card);border-radius:20px;padding:28px 22px;width:92%;max-width:410px;box-shadow:0 16px 48px rgba(0,0,0,.25);animation:pop .22s ease}
+        @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+        .fp-box h2{font-size:19px;font-weight:700;margin-bottom:5px;color:var(--text)}
+        .fp-sub{font-size:13px;color:var(--subtext);margin-bottom:20px}
+        .sc{background:var(--msg-user);border-radius:13px;padding:15px 16px;margin-bottom:12px;cursor:pointer;border:1.5px solid transparent;display:flex;align-items:center;gap:13px}
+        .sc:hover{border-color:var(--accent)}
+        .sc .si{font-size:26px;width:34px;text-align:center}
+        .sc .st h4{font-size:14.5px;font-weight:700;color:var(--text);margin-bottom:3px}
+        .sc .st p{font-size:12.5px;color:var(--subtext)}
+        .fp-close{margin-top:8px;width:100%;padding:11px;background:transparent;border:1.5px solid var(--border);border-radius:10px;color:var(--subtext);cursor:pointer;font-size:14px;font-family:var(--font);font-weight:600}
+        .fp-close:hover{background:var(--msg-user)}
+
+        /* Theme picker */
+        .th-row{display:flex;gap:10px;margin-bottom:14px}
+        .th-opt{flex:1;padding:14px 8px;border:2px solid var(--border);border-radius:13px;cursor:pointer;text-align:center;background:var(--msg-user)}
+        .th-opt.on{border-color:var(--accent)}
+        .th-opt .ti{font-size:28px;margin-bottom:6px}
+        .th-opt .tn{font-size:13px;font-weight:700;color:var(--text)}
+
+        /* Delete modal */
+        .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center}
+        .modal.show{display:flex}
+        .mbox{background:var(--card);border-radius:16px;padding:26px 20px;width:270px;text-align:center}
+        .mbox .mt{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
+        .mbox p{font-size:13.5px;color:var(--subtext);margin-bottom:18px;line-height:1.6}
+        .mbtns{display:flex;gap:9px}
+        .mbtns button{flex:1;padding:11px;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:var(--font);font-weight:700}
+        .bc{background:var(--msg-user);color:var(--text)}
+        .bd{background:#e74c3c;color:#fff}
+
+        @media(min-width:768px){
+            .sidebar{position:relative;left:0}
+            .overlay{display:none!important}
+            .menu-btn{display:none}
+        }
+    </style>
+</head>
+<body>
+
+<!-- Delete modal -->
+<div class="modal" id="del-modal">
+    <div class="mbox">
+        <div class="mt">🗑️ Delete Chat?</div>
+        <p>This dream discussion will be permanently deleted.</p>
+        <div class="mbtns">
+            <button class="bc" onclick="closeDel()">Cancel</button>
+            <button class="bd" onclick="confirmDel()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings panel -->
+<div class="fp" id="fp-settings">
+    <div class="fp-box">
+        <h2>⚙️ Settings</h2>
+        <p class="fp-sub">Manage your preferences</p>
+        <div class="sc" onclick="showTheme()">
+            <div class="si">🎨</div>
+            <div class="st"><h4>Theme</h4><p>Switch Light / Dark mode</p></div>
+        </div>
+        <div class="sc" onclick="clearAll()">
+            <div class="si">🗑️</div>
+            <div class="st"><h4 style="color:#e74c3c">Clear All History</h4><p>Delete all saved dream chats</p></div>
+        </div>
+        <button class="fp-close" onclick="hide('fp-settings')">✕ Close</button>
+    </div>
+</div>
+
+<!-- Theme panel -->
+<div class="fp" id="fp-theme">
+    <div class="fp-box">
+        <h2>🎨 Choose Theme</h2>
+        <p class="fp-sub">Select your preferred appearance</p>
+        <div class="th-row">
+            <div class="th-opt" id="tl" onclick="setTheme('light')">
+                <div class="ti">☀️</div><div class="tn">Light</div>
+            </div>
+            <div class="th-opt" id="td" onclick="setTheme('dark')">
+                <div class="ti">🌙</div><div class="tn">Dark</div>
+            </div>
+        </div>
+        <button class="fp-close" onclick="hide('fp-theme');show('fp-settings')">← Back</button>
+    </div>
+</div>
+
+<div class="overlay" id="ov" onclick="toggleSB()"></div>
+
+<div class="sidebar" id="sb">
+    <div class="sb-top">
+        <div class="rel-row">
+            <button class="rel-btn on" id="bs" onclick="setRel('sanatan')">🕉️ Traditional</button>
+            <button class="rel-btn" id="bi" onclick="setRel('islam')">☪️ Islam</button>
+        </div>
+        <button class="new-btn" onclick="newChat()">+ New Chat</button>
+    </div>
+    <div class="hist-list" id="hl"></div>
+    <div class="set-btn" onclick="openSettings()">
+        <i class="fa-solid fa-gear"></i> Settings
+    </div>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <button class="menu-btn" onclick="toggleSB()"><i class="fa-solid fa-bars"></i></button>
+        <h2 id="hdr" style="font-size:17px;font-weight:700">🕉️ Swapno Shastra (Traditional)</h2>
+    </div>
+    <div class="chat" id="chat">
+        <div class="welcome">
+            <div class="logo" id="cl">🕉️</div>
+            <h3>Know the meaning of your dreams</h3>
+            <p>Write your dream in detail below</p>
+        </div>
+    </div>
+    <div class="inp-wrap">
+        <div class="inp-box">
+            <textarea id="ti" placeholder="Write your dream here..." rows="1"
+                oninput="ar(this)" onkeypress="ke(event)"></textarea>
+            <button class="send" id="sendbtn" onclick="send()">
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = '/api/interpret';
+
+    let sessions = JSON.parse(localStorage.getItem('ss') || '[]');
+    let curId    = null;
+    let rel      = localStorage.getItem('rel') || 'sanatan';
+    let delId    = null;
+    let theme    = localStorage.getItem('th') || 'light';
+
+    const chat   = document.getElementById('chat');
+    const ti     = document.getElementById('ti');
+    const sendbtn = document.getElementById('sendbtn');
+
+    // ── Helpers ──
+    function show(id){ document.getElementById(id).classList.add('show') }
+    function hide(id){ document.getElementById(id).classList.remove('show') }
+    function toggleSB(){
+        document.getElementById('sb').classList.toggle('open');
+        document.getElementById('ov').classList.toggle('active');
+    }
+    function ar(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px' }
+    function ke(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send() } }
+    function fmt(t){
+        return t
+            .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g,'<em>$1</em>');
+    }
+
+    // ── Settings ──
+    function openSettings(){
+        if(window.innerWidth<768 && document.getElementById('sb').classList.contains('open')) toggleSB();
+        show('fp-settings');
+    }
+
+    // ── Theme ──
+    function setTheme(t){
+        theme=t; localStorage.setItem('th',t);
+        document.documentElement.setAttribute('data-theme',t);
+        document.getElementById('tl').classList.toggle('on', t==='light');
+        document.getElementById('td').classList.toggle('on', t==='dark');
+    }
+    function showTheme(){
+        hide('fp-settings');
+        setTheme(theme);
+        show('fp-theme');
+    }
+
+    // ── Religion ──
+    function setRel(r){
+        rel=r; localStorage.setItem('rel',r);
+        document.getElementById('bs').classList.toggle('on', r==='sanatan');
+        document.getElementById('bi').classList.toggle('on', r==='islam');
+        const lg = r==='sanatan' ? '🕉️' : '☪️';
+        const nm = r==='sanatan' ? 'Traditional' : 'Islam';
+        document.getElementById('hdr').innerText = `${lg} Swapno Shastra (${nm})`;
+        const cl = document.getElementById('cl'); if(cl) cl.innerText = lg;
+    }
+
+    // ── Delete ──
+    function openDel(id){ delId=id; show('del-modal') }
+    function closeDel(){ delId=null; hide('del-modal') }
+    function confirmDel(){
+        if(!delId) return;
+        sessions = sessions.filter(x=>x.id!==delId);
+        save();
+        if(curId===delId){ curId=null; newChat() } else renderHist();
+        closeDel();
+    }
+    function clearAll(){
+        hide('fp-settings');
+        setTimeout(()=>{
+            if(confirm('Delete all chat history?')){
+                sessions=[]; save(); newChat();
+            }
+        }, 150);
+    }
+
+    // ── Send ──
+    async function send(){
+        const text = ti.value.trim();
+        if(!text) return;
+        if(!curId) chat.innerHTML='';
+        addMsg('user', text);
+        ti.value=''; ti.style.height='auto';
+        sendbtn.disabled=true;
+        savMsg('user', text);
+        const aiEl = addMsg('ai','<span class="typing">স্বপ্ন বিশ্লেষণ করা হচ্ছে...</span>');
+        try{
+            const r = await fetch(API_URL,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ dream:text, religion:rel })
+            });
+            const d = await r.json();
+            if(!r.ok) throw new Error(d.error || `Server error ${r.status}`);
+            typewrite(d.text, aiEl);
+            savMsg('ai', d.text);
+        }catch(e){
+            aiEl.innerHTML=`<em style="color:#e74c3c">⚠️ ${e.message}</em>`;
+        }
+        sendbtn.disabled=false;
+    }
+
+    function addMsg(who, html){
+        const w=document.createElement('div'); w.className=`mw ${who}`;
+        const b=document.createElement('div'); b.className='mb';
+        b.innerHTML=`<div class="mc">${fmt(html)}</div>`;
+        w.appendChild(b); chat.appendChild(w);
+        chat.scrollTop=chat.scrollHeight;
+        return b.querySelector('.mc');
+    }
+
+    function typewrite(text, el){
+        el.innerHTML='';
+        const f=fmt(text); let i=0;
+        function t(){
+            if(i>=f.length) return;
+            if(f[i]==='<'){ let g=''; while(i<f.length&&f[i]!=='>') g+=f[i++]; g+='>'; i++; el.innerHTML+=g; }
+            else el.innerHTML+=f[i++];
+            chat.scrollTop=chat.scrollHeight;
+            setTimeout(t,7);
+        }
+        t();
+    }
+
+    // ── Sessions ──
+    function savMsg(role, text){
+        if(!curId){
+            curId=Date.now().toString();
+            sessions.unshift({
+                id:curId,
+                title:text.substring(0,34)+(text.length>34?'…':''),
+                rel, messages:[]
+            });
+            if(sessions.length>40) sessions.pop();
+        }
+        const s=sessions.find(x=>x.id===curId);
+        if(s) s.messages.push({role,text});
+        save(); renderHist();
+    }
+    function save(){ localStorage.setItem('ss', JSON.stringify(sessions)) }
+
+    function loadSession(id){
+        curId=id; chat.innerHTML='';
+        const s=sessions.find(x=>x.id===id);
+        if(s){
+            setRel(s.rel||'sanatan');
+            s.messages.forEach(m=>{
+                const w=document.createElement('div'); w.className=`mw ${m.role}`;
+                const b=document.createElement('div'); b.className='mb';
+                b.innerHTML=`<div class="mc">${fmt(m.text)}</div>`;
+                w.appendChild(b); chat.appendChild(w);
+            });
+            chat.scrollTop=chat.scrollHeight;
+        }
+        if(window.innerWidth<768&&document.getElementById('sb').classList.contains('open')) toggleSB();
+        renderHist();
+    }
+
+    function renderHist(){
+        const hl=document.getElementById('hl'); hl.innerHTML='';
+        sessions.forEach(s=>{
+            const d=document.createElement('div');
+            d.className='hist-item'+(s.id===curId?' on':'');
+            d.innerText=s.title; d.setAttribute('data-id',s.id);
+            d.addEventListener('click',function(){ loadSession(this.getAttribute('data-id')) });
+            let pt=null;
+            d.addEventListener('touchstart',function(){
+                const id=this.getAttribute('data-id'); d.classList.add('press');
+                pt=setTimeout(()=>{ d.classList.remove('press'); openDel(id) },600);
+            },{passive:true});
+            d.addEventListener('touchend',()=>{ clearTimeout(pt); d.classList.remove('press') });
+            d.addEventListener('touchmove',()=>{ clearTimeout(pt); d.classList.remove('press') });
+            d.addEventListener('contextmenu',function(e){ e.preventDefault(); openDel(this.getAttribute('data-id')) });
+            hl.appendChild(d);
+        });
+    }
+
+    function newChat(){
+        const lg=rel==='sanatan'?'🕉️':'☪️';
+        chat.innerHTML=`<div class="welcome">
+            <div class="logo" id="cl">${lg}</div>
+            <h3>Know the meaning of your dreams</h3>
+            <p>Write your dream in detail below</p>
+        </div>`;
+        curId=null;
+        if(window.innerWidth<768&&document.getElementById('sb').classList.contains('open')) toggleSB();
+        renderHist();
+    }
+
+    window.onload=()=>{ setTheme(theme); setRel(rel); renderHist() };
+</script>
+</body>
+                                                                         </html>
