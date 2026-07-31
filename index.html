@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dream Lens - AI Dream Interpreter</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffffff" id="theme-color-meta">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dream Lens">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="description" content="AI দিয়ে আপনার স্বপ্নের অর্থ জানুন">
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    :root {
+        --bg: #ffffff; --sb: #f8f8f8; --text: #0d0d0d; --sub: #777; --border: #e8e8e8;
+        --umsg: #f0f0f0; --inp: #ffffff; --card: #ffffff; --scard: #f3f3f3;
+        --accent: #2aabeb; --accent-h: #60cce4; --danger: #e74c3c;
+        --font: 'Noto Sans Bengali', sans-serif;
+        --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+    }
+    [data-theme="dark"] {
+        --bg: #13131f; --sb: #1a1a2e; --text: #e6e6f0; --sub: #888; --border: #2a2a40;
+        --umsg: #23233a; --inp: #1e1e32; --card: #1a1a2e; --scard: #23233a;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; overflow: hidden; }
+    body {
+        display: flex; flex-direction: column; height: 100dvh;
+        background: var(--bg); color: var(--text); overflow: hidden;
+        transition: background .3s, color .3s; padding-top: var(--safe-top);
+    }
+
+    #authCheckOverlay {
+        position: fixed; inset: 0; background: #fff; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #authCheckOverlay .spin { width: 34px; height: 34px; border: 3px solid #e0e0e0; border-top-color: var(--accent); border-radius: 50%; animation: sp .8s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    #offline-bar { display: none; background: var(--danger); color: #fff; text-align: center; padding: 7px 12px; font-size: 13px; font-weight: 600; position: relative; z-index: 999; flex-shrink: 0; }
+    #offline-bar.show { display: block; }
+
+    #layout { display: flex; flex: 1; overflow: hidden; position: relative; }
+    #ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 90; backdrop-filter: blur(2px); }
+    #ov.show { display: block; }
+
+    #sb { position: absolute; left: -290px; top: 0; height: 100%; width: min(272px, 80vw); background: var(--sb); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: left .28s cubic-bezier(.4,0,.2,1); z-index: 100; }
+    #sb.open { left: 0; }
+    .sb-top { padding: max(20px, calc(var(--safe-top) + 12px)) 14px 14px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .new-btn { padding: 10px 14px; background: transparent; border: 1.5px solid var(--border); color: var(--text); border-radius: 10px; cursor: pointer; text-align: left; font-weight: 700; font-family: var(--font); font-size: clamp(12px,3.5vw,14px); }
+    .new-btn:hover { background: var(--umsg); }
+    #hl { flex: 1; overflow-y: auto; padding: 10px 8px; overscroll-behavior: contain; }
+    .hi { padding: 10px 12px; margin-bottom: 4px; border-radius: 9px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(12px,3.5vw,14px); color: var(--text); user-select: none; transition: background .15s; }
+    .hi:hover, .hi.on { background: var(--umsg); }
+    .hi.press { background: #fde8e8; }
+
+    .sb-footer { border-top: 1px solid var(--border); flex-shrink: 0; padding-bottom: var(--safe-bottom); }
+    .set-btn { padding: 14px 18px; cursor: pointer; color: var(--accent); display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; transition: background .15s; }
+    .set-btn:hover { background: var(--umsg); }
+    .user-chip { display: flex; align-items: center; gap: 10px; padding: 10px 18px 14px; cursor: pointer; }
+    .user-chip img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--umsg); flex-shrink: 0; }
+    .user-chip .un { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-chip .us { font-size: 11px; color: var(--sub); }
+
+    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+    #topbar { padding: 14px 16px 12px; display: flex; align-items: center; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 10px; }
+    .menu-btn { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: var(--card); color: var(--text); border: 1.5px solid var(--border); border-radius: 12px; font-size: 20px; cursor: pointer; flex-shrink: 0; transition: all .25s ease; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .menu-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .menu-btn:active { transform: scale(.95); }
+    #hdr { font-size: clamp(14px, 4vw, 17px); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #chat { flex: 1; overflow-y: auto; padding: 16px 16px 0; overscroll-behavior: contain; scroll-behavior: smooth; }
+    .chat-inner { padding-bottom: calc(110px + var(--safe-bottom)); }
+
+    .welcome { text-align: center; padding: clamp(30px,8vh,70px) 20px 20px; }
+    .welcome .logo { font-size: clamp(48px,14vw,72px); margin-bottom: 14px; }
+    .welcome h3 { font-size: clamp(16px,4.5vw,21px); font-weight: 700; margin-bottom: 8px; }
+    .welcome p { font-size: clamp(13px,3.5vw,15px); color: var(--sub); }
+
+    .mw { display: flex; width: 100%; margin-bottom: 10px; flex-direction: column; }
+    .mw.user { align-items: flex-end; }
+    .mw.ai { align-items: flex-start; }
+    .mc { max-width: min(86%, 600px); line-height: 1.8; font-size: clamp(13.5px, 3.8vw, 15.5px); white-space: pre-wrap; }
+    .mw.user .mc { background: var(--umsg); color: var(--text); padding: 10px 16px; border-radius: 18px; border-bottom-right-radius: 4px; }
+    .mw.ai .mc { color: var(--text); padding: 4px 2px; }
+    .typing { color: var(--sub); font-style: italic; }
+
+    .fb-row { display: flex; gap: 6px; margin: 4px 0 18px 2px; }
+    .fb-btn { border: 1.5px solid var(--border); background: var(--card); border-radius: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: .15s; color: var(--sub); }
+    .fb-btn.on-up { background: #dcfce7; border-color: #86efac; color: #16a34a; }
+    .fb-btn.on-down { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+    #inp-wrap { flex-shrink: 0; padding: 8px 14px calc(10px + var(--safe-bottom)); background: linear-gradient(transparent, var(--bg) 22%); display: flex; justify-content: center; }
+    .inp-box { width: 100%; max-width: 700px; display: flex; align-items: flex-end; border: 1.5px solid var(--border); border-radius: 22px; background: var(--inp); box-shadow: 0 4px 20px rgba(124,92,191,.12); padding: 4px 6px; }
+    textarea { flex: 1; max-height: 120px; min-height: 40px; padding: 9px 10px; border: none; outline: none; resize: none; line-height: 1.5; font-size: clamp(14px, 4vw, 16px); background: transparent; color: var(--text); font-family: var(--font); }
+    textarea::placeholder { color: var(--sub); }
+    #send-btn { background: var(--card); color: var(--text); border: 1.5px solid var(--border); transition: all .25s ease; box-shadow: 0 2px 8px rgba(0,0,0,.08); width: 36px; height: 36px; border-radius: 10px; margin: 4px 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 40px; flex-shrink: 0; }
+    #send-btn:hover { background: var(--accent-h); }
+    #send-btn:disabled { background: #bbb; cursor: not-allowed; }
+
+    .fp { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
+    .fp.show { display: flex; }
+    .fp-box { background: var(--card); border-radius: 20px; padding: 26px 20px; width: 100%; max-width: 400px; box-shadow: 0 16px 48px rgba(0,0,0,.25); max-height: 90vh; overflow-y: auto; }
+    .fp-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .fp-sub { font-size: 13px; color: var(--sub); margin-bottom: 18px; }
+    .sc { background: var(--scard); border-radius: 13px; padding: 14px 15px; margin-bottom: 11px; cursor: pointer; border: 1.5px solid transparent; display: flex; align-items: center; gap: 12px; transition: border-color .2s; }
+    .sc:hover { border-color: var(--accent); }
+    .sc .si { font-size: 24px; width: 32px; text-align: center; }
+    .sc .st h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .sc .st p { font-size: 12px; color: var(--sub); }
+    .fp-close { margin-top: 6px; width: 100%; padding: 11px; background: transparent; border: 1.5px solid var(--border); border-radius: 10px; color: var(--sub); cursor: pointer; font-size: 14px; font-family: var(--font); font-weight: 600; }
+
+    .th-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .th-opt { flex: 1; padding: 14px 8px; border: 2px solid var(--border); border-radius: 13px; cursor: pointer; text-align: center; background: var(--scard); }
+    .th-opt.on { border-color: var(--accent); }
+    .th-opt .ti { font-size: 26px; margin-bottom: 5px; }
+    .th-opt .tn { font-size: 13px; font-weight: 700; color: var(--text); }
+
+    #del-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400; align-items: center; justify-content: center; padding: 20px; }
+    #del-modal.show { display: flex; }
+    .mbox { background: var(--card); border-radius: 18px; padding: 26px 20px; width: 100%; max-width: 280px; text-align: center; }
+    .mt { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+    .mbox p { font-size: 13.5px; color: var(--sub); margin-bottom: 18px; line-height: 1.6; }
+    .mbtns { display: flex; gap: 9px; }
+    .mbtns button { flex: 1; padding: 11px; border: none; border-radius: 9px; font-size: 14px; cursor: pointer; font-family: var(--font); font-weight: 700; }
+    .bc { background: var(--umsg); color: var(--text); }
+    .bd { background: var(--danger); color: #fff; }
+
+    @media (min-width: 768px) {
+        #sb { position: relative; left: 0 !important; width: 260px; }
+        #ov { display: none !important; }
+        .menu-btn { display: none; }
+        #layout { overflow: hidden; }
+        .mc { max-width: 70%; }
+    }
+</style>
+</head>
+<body>
+
+<div id="authCheckOverlay"><div class="spin"></div></div>
+
+<div id="offline-bar">📵 Offline — Internet connection required</div>
+
+<div id="ov" onclick="closeSB()"></div>
+
+<div id="layout">
+    <div id="sb">
+        <div class="sb-top">
+            <button class="new-btn" onclick="newChat()">+ New Chat</button>
+        </div>
+        <div id="hl"></div>
+        <div class="sb-footer">
+            <div class="set-btn" onclick="openSettings()">⚙️ Settings</div>
+            <div class="user-chip" onclick="openSettings()">
+                <img id="sbAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+                <div>
+                    <div class="un" id="sbName">User</div>
+                    <div class="us" id="sbSource"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="topbar">
+            <button class="menu-btn" onclick="openSB()">☰</button>
+            <span id="hdr">🌙 Dream Lens</span>
+        </div>
+        <div id="chat">
+            <div class="chat-inner" id="chat-inner">
+                <div class="welcome">
+                    <div class="logo">🌙</div>
+                    <h3>Discover the Meaning of Your Dreams</h3>
+                    <p>Describe Your Dream Below</p>
+                </div>
+            </div>
+        </div>
+        <div id="inp-wrap">
+            <div class="inp-box">
+                <textarea id="ti" placeholder="Describe your dream..." rows="1" oninput="ar(this)" onkeypress="ke(event)"></textarea>
+                <button id="send-btn" onclick="send()">⇑</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="del-modal">
+    <div class="mbox">
+        <div class="mt">🗑️ Delete Chat?</div>
+        <p>This chat will be permanently deleted (only from this device).</p>
+        <div class="mbtns">
+            <button class="bc" onclick="closeDel()">Cancel</button>
+            <button class="bd" onclick="confirmDel()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="fp" id="fp-settings">
+    <div class="fp-box">
+        <div class="fp-title">⚙️ Settings</div>
+        <div class="fp-sub">Manage your preferences</div>
+        <div class="sc" onclick="showFP('fp-theme')">
+            <div class="si">🎨</div>
+            <div class="st"><h4>Theme</h4><p>Light / Dark mode</p></div>
+        </div>
+        <div class="sc" onclick="clearAll()">
+            <div class="si">🗑️</div>
+            <div class="st"><h4 style="color:var(--danger)">Clear Local History</h4><p>শুধু এই ডিভাইস থেকে chat list মুছে যাবে</p></div>
+        </div>
+        <div class="sc" onclick="logout()">
+            <div class="si">🚪</div>
+            <div class="st"><h4 style="color:var(--danger)">Logout</h4><p>একাউন্ট থেকে বের হয়ে যান</p></div>
+        </div>
+        <button class="fp-close" onclick="hideFP('fp-settings')">✕ Close</button>
+    </div>
+</div>
+
+<div class="fp" id="fp-theme">
+    <div class="fp-box">
+        <div class="fp-title">🎨 Choose Theme</div>
+        <div class="fp-sub">Choose Your Preferred Theme</div>
+        <div class="th-row">
+            <div class="th-opt" id="tl" onclick="setTheme('light')"><div class="ti">☀️</div><div class="tn">Light</div></div>
+            <div class="th-opt" id="td" onclick="setTheme('dark')"><div class="ti">🌙</div><div class="tn">Dark</div></div>
+        </div>
+        <button class="fp-close" onclick="hideFP('fp-theme'); showFP('fp-settings')">← Back</button>
+    </div>
+</div>
+
+<script>
+'use strict';
+const API_URL = '/api/interpret';
+const FEEDBACK_URL = '/api/feedback';
+const STORE_KEY = 'dl_sessions'; // শুধু sidebar-এর title/messages cache করার জন্য (লোকাল, ব্যাকআপ না)
+
+let sessions = [];
+let curId = null;
+let theme = 'light';
+let delTarget = null;
+let sending = false;
+
+try { sessions = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { sessions = []; }
+try { theme = localStorage.getItem('dl_theme') || 'light'; } catch(e) {}
+
+const chatInner = document.getElementById('chat-inner');
+const chatEl = document.getElementById('chat');
+const ti = document.getElementById('ti');
+const sendBtn = document.getElementById('send-btn');
+
+// ================= AUTH GUARD =================
+(async function checkAuth() {
+    try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+            window.location.replace('login.html');
+            return;
+        }
+        const { user } = await res.json();
+        document.getElementById('sbName').innerText = (user.first_name || user.last_name)
+            ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+            : (user.email || 'User');
+        document.getElementById('sbSource').innerText = user.login_source === 'devonix' ? 'Dev-Onix দিয়ে লগইন' : 'Email দিয়ে লগইন';
+        if (user.profile_picture) document.getElementById('sbAvatar').src = user.profile_picture;
+    } catch (e) {
+        window.location.replace('login.html');
+        return;
+    } finally {
+        document.getElementById('authCheckOverlay').style.display = 'none';
+    }
+    setTheme(theme);
+    renderHist();
+    updateOnline();
+})();
+
+async function logout() {
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+    window.location.href = 'login.html';
+}
+
+// ================= Offline ==================
+function updateOnline() { document.getElementById('offline-bar').classList.toggle('show', !navigator.onLine); }
+window.addEventListener('online', updateOnline);
+window.addEventListener('offline', updateOnline);
+
+// ================= UI Helpers ==================
+function showFP(id) { document.querySelectorAll('.fp').forEach(el => el.classList.remove('show')); document.getElementById(id).classList.add('show'); }
+function hideFP(id) { document.getElementById(id).classList.remove('show'); }
+function openSB() { document.getElementById('sb').classList.add('open'); document.getElementById('ov').classList.add('show'); }
+function closeSB() { document.getElementById('sb').classList.remove('open'); document.getElementById('ov').classList.remove('show'); }
+function openSettings() { closeSB(); showFP('fp-settings'); }
+
+function ar(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; }
+function ke(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+function fmt(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
+}
+function scrollBot() { requestAnimationFrame(() => { chatEl.scrollTop = chatEl.scrollHeight; }); }
+
+// ================= Theme ==================
+function setTheme(t) {
+    theme = t;
+    try { localStorage.setItem('dl_theme', t); } catch(e) {}
+    document.documentElement.setAttribute('data-theme', t);
+    document.getElementById('tl').classList.toggle('on', t === 'light');
+    document.getElementById('td').classList.toggle('on', t === 'dark');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    meta.setAttribute('content', t === 'dark' ? '#13131f' : '#ffffff');
+}
+
+// ================= Delete ==================
+function openDel(id) { delTarget = id; document.getElementById('del-modal').classList.add('show'); }
+function closeDel() { delTarget = null; document.getElementById('del-modal').classList.remove('show'); }
+function confirmDel() {
+    if (!delTarget) return;
+    sessions = sessions.filter(x => x.id !== delTarget);
+    saveAll();
+    if (curId === delTarget) { curId = null; newChat(); } else renderHist();
+    closeDel();
+}
+function clearAll() {
+    hideFP('fp-settings');
+    setTimeout(() => {
+        if (confirm('এই ডিভাইস থেকে সব chat লিস্ট মুছে ফেলবেন?')) { sessions = []; saveAll(); newChat(); }
+    }, 150);
+}
+
+// ================= Send ==================
+async function send() {
+    if (sending) return;
+    const text = ti.value.trim();
+    if (!text) return;
+
+    if (!navigator.onLine) { alert('You are offline. Please check your internet connection.'); return; }
+
+    if (!curId) chatInner.innerHTML = '';
+
+    addUserMsg(text);
+    ti.value = ''; ti.style.height = 'auto';
+    sendBtn.disabled = true;
+    sending = true;
+
+    const aiWrap = addAiPlaceholder();
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+
+        const currentSession = sessions.find(x => x.id === curId);
+        const history = currentSession ? currentSession.messages.slice(-6) : [];
+        const backendSessionId = currentSession ? currentSession.backendSessionId : null;
+
+        const r = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dream: text, history, sessionId: backendSessionId }),
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (r.status === 401) { window.location.replace('login.html'); return; }
+
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || `Server error ${r.status}`);
+
+        typewrite(d.text, aiWrap.textEl);
+        saveMsg('user', text, null);
+        saveMsg('ai', d.text, d.messageId);
+        setSessionBackendId(d.sessionId);
+        renderFeedbackRow(aiWrap.fbRow, d.messageId, null);
+
+    } catch (e) {
+        const msg = e.name === 'AbortError' ? 'Request timed out. Please try again.' : (e.message || 'Unknown error');
+        aiWrap.textEl.innerHTML = `<em style="color:var(--danger)">⚠️ ${msg}</em>`;
+    }
+
+    sendBtn.disabled = false;
+    sending = false;
+}
+
+function addUserMsg(text) {
+    const w = document.createElement('div'); w.className = 'mw user';
+    const d = document.createElement('div'); d.className = 'mc';
+    d.innerHTML = fmt(text);
+    w.appendChild(d); chatInner.appendChild(w); scrollBot();
+}
+
+function addAiPlaceholder() {
+    const w = document.createElement('div'); w.className = 'mw ai';
+    const d = document.createElement('div'); d.className = 'mc';
+    d.innerHTML = '<span class="typing">Analyzing your dream... ✨</span>';
+    const fbRow = document.createElement('div'); fbRow.className = 'fb-row';
+    w.appendChild(d); w.appendChild(fbRow);
+    chatInner.appendChild(w); scrollBot();
+    return { textEl: d, fbRow };
+}
+
+function renderFeedbackRow(fbRow, messageId, currentFeedback) {
+    if (!messageId) { fbRow.innerHTML = ''; return; }
+    fbRow.innerHTML = `
+        <button class="fb-btn ${currentFeedback === 'up' ? 'on-up' : ''}" onclick="sendFeedback(${messageId}, 'up', this)">👍</button>
+        <button class="fb-btn ${currentFeedback === 'down' ? 'on-down' : ''}" onclick="sendFeedback(${messageId}, 'down', this)">👎</button>
+    `;
+}
+
+async function sendFeedback(messageId, feedback, btnEl) {
+    const row = btnEl.parentElement;
+    const alreadyOn = btnEl.classList.contains(feedback === 'up' ? 'on-up' : 'on-down');
+    const newFeedback = alreadyOn ? null : feedback;
+
+    row.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('on-up', 'on-down'));
+    if (newFeedback) btnEl.classList.add(newFeedback === 'up' ? 'on-up' : 'on-down');
+
+    try {
+        await fetch(FEEDBACK_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messageId, feedback: newFeedback })
+        });
+    } catch (e) {}
+
+    const s = sessions.find(x => x.id === curId);
+    if (s) {
+        const m = s.messages.find(x => x.messageId === messageId);
+        if (m) m.feedback = newFeedback;
+        saveAll();
+    }
+}
+
+// ================= Typewriter ==================
+function typewrite(text, el) {
+    el.innerHTML = '';
+    const f = fmt(text); let i = 0;
+    function t() {
+        if (i >= f.length) return;
+        const nearBottom = (chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight) <= 25;
+        if (f[i] === '<') {
+            let g = '';
+            while (i < f.length && f[i] !== '>') g += f[i++];
+            g += '>'; i++; el.innerHTML += g;
+        } else { el.innerHTML += f[i++]; }
+        if (nearBottom) chatEl.scrollTop = chatEl.scrollHeight;
+        setTimeout(t, 6);
+    }
+    t();
+}
+
+// ================= Sessions (local sidebar cache only) ==================
+function saveMsg(role, text, messageId) {
+    if (!curId) {
+        curId = Date.now().toString();
+        sessions.unshift({ id: curId, backendSessionId: null, title: text.substring(0, 34) + (text.length > 34 ? '…' : ''), messages: [] });
+        if (sessions.length > 50) sessions.pop();
+    }
+    const s = sessions.find(x => x.id === curId);
+    if (s) s.messages.push({ role, text, messageId: messageId || null, feedback: null });
+    saveAll(); renderHist();
+}
+
+function setSessionBackendId(backendSessionId) {
+    const s = sessions.find(x => x.id === curId);
+    if (s && !s.backendSessionId) s.backendSessionId = backendSessionId;
+    saveAll();
+}
+
+function saveAll() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(sessions)); } catch(e) {
+        if (sessions.length > 10) sessions = sessions.slice(0, 10);
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(sessions)); } catch(e2) {}
+    }
+}
+
+function loadSession(id) {
+    const s = sessions.find(x => x.id === id);
+    if (!s) return;
+    curId = id;
+    chatInner.innerHTML = '';
+    s.messages.forEach(m => {
+        const w = document.createElement('div'); w.className = `mw ${m.role}`;
+        const d = document.createElement('div'); d.className = 'mc';
+        d.innerHTML = fmt(m.text);
+        w.appendChild(d);
+        if (m.role === 'ai') {
+            const fbRow = document.createElement('div'); fbRow.className = 'fb-row';
+            w.appendChild(fbRow);
+            renderFeedbackRow(fbRow, m.messageId, m.feedback);
+        }
+        chatInner.appendChild(w);
+    });
+    scrollBot(); closeSB(); renderHist();
+}
+
+function renderHist() {
+    const hl = document.getElementById('hl');
+    hl.innerHTML = '';
+    sessions.forEach(s => {
+        const d = document.createElement('div');
+        d.className = 'hi' + (s.id === curId ? ' on' : '');
+        d.textContent = s.title;
+        d.dataset.id = s.id;
+        d.addEventListener('click', () => loadSession(d.dataset.id));
+        d.addEventListener('contextmenu', e => { e.preventDefault(); openDel(d.dataset.id); });
+        let pt = null;
+        d.addEventListener('touchstart', () => {
+            d.classList.add('press');
+            pt = setTimeout(() => { d.classList.remove('press'); openDel(d.dataset.id); }, 600);
+        }, { passive: true });
+        d.addEventListener('touchend', () => { clearTimeout(pt); d.classList.remove('press'); });
+        d.addEventListener('touchmove', () => { clearTimeout(pt); d.classList.remove('press'); });
+        hl.appendChild(d);
+    });
+}
+
+function newChat() {
+    curId = null;
+    chatInner.innerHTML = `<div class="welcome"><div class="logo">🌙</div><h3>Discover the Meaning of Your Dreams</h3><p>Describe Your Dream Below</p></div>`;
+    closeSB(); renderHist();
+}
+
+// ================= Service Worker ==================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(() => {}).catch(() => {});
+    });
+}
+</script>
+</body>
+  </html>
