@@ -22,15 +22,15 @@ export default async function handler(req, res) {
     `;
 
     if (rows.length === 0) {
-      return res.status(401).json({ error: 'অ্যাকাউন্ট আর নেই' });
+      return res.status(401).json({ error: 'Account no longer exists' });
     }
     if (rows[0].banned) {
-      return res.status(403).json({ error: 'আপনার একাউন্ট ব্যান করা হয়েছে' + (rows[0].ban_reason ? `: ${rows[0].ban_reason}` : '') });
+      return res.status(403).json({ error: 'Your account has been banned' + (rows[0].ban_reason ? `: ${rows[0].ban_reason}` : '') });
     }
 
     return res.status(200).json({ user: rows[0] });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'সার্ভার এরর' });
+    return res.status(500).json({ error: 'Server error' });
   }
 }
