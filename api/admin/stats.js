@@ -129,6 +129,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'সার্ভার এরর' });
+    return res.status(500).json({ error: 'Server error' });
   }
 }
