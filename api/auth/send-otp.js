@@ -13,13 +13,13 @@ export default async function handler(req, res) {
   try {
     const { email } = req.body || {};
     if (!email || !isValidEmail(email)) {
-      return res.status(400).json({ error: 'সঠিক ইমেইল দিন' });
+      return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
     // ব্যান করা একাউন্ট হলে আগেই আটকানো হচ্ছে
     const existing = await sql`SELECT banned, ban_reason FROM users WHERE email = ${email}`;
     if (existing.length > 0 && existing[0].banned) {
-      return res.status(403).json({ error: 'আপনার একাউন্ট ব্যান করা হয়েছে' + (existing[0].ban_reason ? `: ${existing[0].ban_reason}` : '') });
+      return res.status(403).json({ error: 'Your account has been banned' + (existing[0].ban_reason ? `: ${existing[0].ban_reason}` : '') });
     }
 
     // Rate limit: একই ইমেইলে ১৫ মিনিটে সর্বোচ্চ ৩ বার
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       WHERE email = ${email} AND created_at > now() - interval '15 minutes'
     `;
     if (Number(recentForEmail[0].count) >= 3) {
-      return res.status(429).json({ error: 'অনেকবার কোড পাঠানো হয়েছে, ১৫ মিনিট পর আবার চেষ্টা করুন' });
+      return res.status(429).json({ error: 'Too many codes sent. Please try again in 15 minutes.' });
     }
 
     // Rate limit: একই IP থেকে ১ ঘণ্টায় সর্বোচ্চ ১০ বার
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       WHERE ip = ${ip} AND created_at > now() - interval '1 hour'
     `;
     if (Number(recentForIp[0].count) >= 10) {
-      return res.status(429).json({ error: 'অনেকবার চেষ্টা হয়েছে, কিছুক্ষণ পর আবার চেষ্টা করুন' });
+      return res.status(429).json({ error: 'Too many attempts. Please try again shortly.' });
     }
 
     const otp = generateOtp();
@@ -55,6 +55,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'কোড পাঠানো যায়নি, পরে আবার চেষ্টা করুন' });
+    return res.status(500).json({ error: 'Could not send code. Please try again later.' });
   }
-                                   }
+}
