@@ -8,12 +8,12 @@ export default async function handler(req, res) {
 
   const token = req.query.token;
   if (!token) {
-    return res.status(400).send('টোকেন পাওয়া যায়নি');
+    return res.status(400).send('Token not found');
   }
 
   const payload = verifySsoToken(token);
   if (!payload || !payload.userId) {
-    return res.status(401).send('SSO টোকেন যাচাই করা যায়নি, আবার লগইন করার চেষ্টা করুন');
+    return res.status(401).send('Could not verify SSO token, please try signing in again');
   }
 
   try {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     if (existing.length > 0) {
       if (existing[0].banned) {
-        return res.status(403).send('আপনার একাউন্ট ব্যান করা হয়েছে' + (existing[0].ban_reason ? `: ${existing[0].ban_reason}` : ''));
+        return res.status(403).send('Your account has been banned' + (existing[0].ban_reason ? `: ${existing[0].ban_reason}` : ''));
       }
       userId = existing[0].id;
       await sql`
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
       if (byEmail.length > 0) {
         if (byEmail[0].banned) {
-          return res.status(403).send('আপনার একাউন্ট ব্যান করা হয়েছে' + (byEmail[0].ban_reason ? `: ${byEmail[0].ban_reason}` : ''));
+          return res.status(403).send('Your account has been banned' + (byEmail[0].ban_reason ? `: ${byEmail[0].ban_reason}` : ''));
         }
         userId = byEmail[0].id;
         await sql`
@@ -72,6 +72,6 @@ export default async function handler(req, res) {
     return res.redirect(302, '/index.html');
   } catch (err) {
     console.error(err);
-    return res.status(500).send('সার্ভার এরর, পরে আবার চেষ্টা করুন');
+    return res.status(500).send('Server error, please try again later');
   }
 }
