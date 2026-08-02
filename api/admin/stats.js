@@ -8,6 +8,25 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    // ================= ক্যাটাগরির ভেতরের entity ব্রেকডাউন (দুই-স্তরের ড্রিলডাউন) =================
+    // যেমন: ?category=পশু কল করলে সেই ক্যাটাগরির ভেতরে গরু/ছাগল/বাঘ ইত্যাদি কোনটা কতবার এসেছে তা রিটার্ন করে
+    if (req.query.category) {
+      const entityBreakdown = await sql`
+        SELECT entity, COUNT(*) AS count
+        FROM dream_messages
+        WHERE role = 'user' AND category = ${req.query.category} AND entity IS NOT NULL
+        GROUP BY entity ORDER BY count DESC LIMIT 20
+      `;
+      const totalInCategory = await sql`
+        SELECT COUNT(*) AS count FROM dream_messages WHERE role = 'user' AND category = ${req.query.category}
+      `;
+      return res.status(200).json({
+        category: req.query.category,
+        total: Number(totalInCategory[0].count),
+        entityBreakdown
+      });
+    }
+
     // ================= মূল টোটাল কার্ড =================
     const totals = await sql`
       SELECT
