@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const { password } = req.body || {};
 
   if (!verifyAdminPassword(password)) {
-    return res.status(401).json({ error: 'ভুল পাসওয়ার্ড' });
+    return res.status(401).json({ error: 'Incorrect password' });
   }
 
   setAdminSessionCookie(res);
