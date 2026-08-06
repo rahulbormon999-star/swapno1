@@ -13,8 +13,8 @@
 
 import { ANIMALS } from './animals.js';
 import { BIRDS } from './birds.js';
-
-const REGISTRY = [ANIMALS, BIRDS];
+import { SPIRITUALS } from './spirituals.js';
+const REGISTRY = [ANIMALS, BIRDS,SPIRITUALS];
 
 /**
  * ক্যাটাগরি (ও থাকলে entity) অনুযায়ী কিউরেটেড স্বপ্নের অর্থ খুঁজে বের করে।
