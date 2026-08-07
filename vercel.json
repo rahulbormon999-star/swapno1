@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/interpret.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
