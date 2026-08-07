@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         }
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="dreamlens-users.csv"');
+        res.setHeader('Content-Disposition', 'attachment; filename="pravax-users.csv"');
         return res.status(200).send(lines.join('\n'));
       }
 
