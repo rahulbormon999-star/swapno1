@@ -1,14 +1,20 @@
 export default async function handler(req, res) {
-  let sql, getUserIdFromRequest;
+  let sql, getUserIdFromRequest, clearSessionCookie;
   try {
     ({ sql } = await import('../../lib/db.js'));
-    ({ getUserIdFromRequest } = await import('../../lib/auth.js'));
+    ({ getUserIdFromRequest, clearSessionCookie } = await import('../../lib/auth.js'));
   } catch (importErr) {
     console.error('me.js import error:', importErr);
     return res.status(500).json({
       error: `IMPORT_ERROR: ${importErr.message}`,
       stack: (importErr.stack || '').split('\n').slice(0, 4).join(' | ')
     });
+  }
+
+  // DELETE = লগআউট (আগে আলাদা auth/logout.js ফাইলে ছিল, function-সংখ্যা কমাতে এখানে মার্জ করা হলো)
+  if (req.method === 'DELETE') {
+    clearSessionCookie(res);
+    return res.status(200).json({ success: true });
   }
 
   const userId = getUserIdFromRequest(req);
