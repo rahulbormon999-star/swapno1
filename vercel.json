@@ -2,6 +2,9 @@
   "functions": {
     "api/interpret.js": {
       "maxDuration": 60
+    },
+    "api/admin/ingest-knowledge.js": {
+      "maxDuration": 60
     }
   },
   "headers": [
