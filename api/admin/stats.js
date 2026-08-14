@@ -1,4 +1,4 @@
-import { sql } from '../../lib/db.js';
+    import { sql } from '../../lib/db.js';
 import { isAdminSessionValid } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
@@ -8,6 +8,26 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    // ================= Audit Log (অ্যাডমিনের কার্যক্রমের ইতিহাস) =================
+    if (req.query.view === 'audit') {
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = 30;
+      const offset = (page - 1) * limit;
+
+      const logs = await sql`
+        SELECT a.id, a.action, a.target_user_id, a.ip, a.created_at,
+               u.first_name, u.last_name, u.email
+        FROM audit_log a
+        LEFT JOIN users u ON u.id = a.target_user_id
+        ORDER BY a.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      const countRows = await sql`SELECT COUNT(*) FROM audit_log`;
+      const total = Number(countRows[0].count);
+
+      return res.status(200).json({ logs, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+    }
+
     // ================= ক্যাটাগরির ভেতরের entity ব্রেকডাউন (দুই-স্তরের ড্রিলডাউন) =================
     // যেমন: ?category=পশু কল করলে সেই ক্যাটাগরির ভেতরে গরু/ছাগল/বাঘ ইত্যাদি কোনটা কতবার এসেছে তা রিটার্ন করে
     if (req.query.category) {
@@ -115,6 +135,21 @@ export default async function handler(req, res) {
       GROUP BY category ORDER BY count DESC LIMIT 20
     `;
 
+    // ================= মডেল-ভিত্তিক টোকেন ব্রেকডাউন (Groq vs OpenRouter vs Synthesis খরচ বোঝার জন্য) =================
+    const modelBreakdown = await sql`
+      SELECT
+        CASE
+          WHEN model LIKE 'openrouter:%' THEN 'OpenRouter'
+          WHEN model LIKE 'synthesis:%' THEN 'Synthesis'
+          WHEN model LIKE 'llama%' THEN 'Groq'
+          ELSE model
+        END AS model_group,
+        COUNT(*) AS requests,
+        COALESCE(SUM(total_tokens), 0) AS tokens
+      FROM token_usage
+      GROUP BY model_group ORDER BY tokens DESC
+    `;
+
     return res.status(200).json({
       totals: totals[0],
       tokenTotals: tokenTotals[0],
@@ -125,7 +160,8 @@ export default async function handler(req, res) {
       monthlyUsers,
       monthlyTokens,
       topCategories,
-      categoriesLast30Days
+      categoriesLast30Days,
+      modelBreakdown
     });
   } catch (err) {
     console.error(err);
