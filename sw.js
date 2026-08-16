@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pravax-shell-v1';
+const CACHE_NAME = 'pravax-shell-v2';
 
 // শুধু স্ট্যাটিক শেল ক্যাশ হয় — API রেসপন্স/ডাটা কখনো ক্যাশ হয় না (সবসময় ফ্রেশ থাকতে হবে)
 const SHELL_FILES = [
