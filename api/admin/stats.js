@@ -1,11 +1,29 @@
-    import { sql } from '../../lib/db.js';
+import { sql } from '../../lib/db.js';
 import { isAdminSessionValid } from '../../lib/auth.js';
 
 export default async function handler(req, res) {
   if (!isAdminSessionValid(req)) {
     return res.status(401).json({ error: 'Admin session invalid, please login again' });
   }
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'DELETE') return res.status(405).json({ error: 'Method not allowed' });
+
+  // ================= নির্বাচিত audit log এন্ট্রি ডিলিট করা =================
+  if (req.method === 'DELETE') {
+    try {
+      const { ids } = req.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'ids array প্রয়োজন' });
+      }
+      const validIds = ids.map(Number).filter(n => Number.isInteger(n) && n > 0);
+      if (validIds.length === 0) return res.status(400).json({ error: 'কোনো বৈধ id পাওয়া যায়নি' });
+
+      const result = await sql`DELETE FROM audit_log WHERE id = ANY(${validIds}) RETURNING id`;
+      return res.status(200).json({ success: true, deleted: result.length });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
 
   try {
     // ================= Audit Log (অ্যাডমিনের কার্যক্রমের ইতিহাস) =================
@@ -96,12 +114,15 @@ export default async function handler(req, res) {
       GROUP BY DATE(created_at) ORDER BY day ASC
     `;
 
+    // ফিডব্যাক না দেওয়া দিনও যেন বাদ না পড়ে (আগে শুধু feedback আছে এমন রো গোনা হতো), তাই role='ai' এর সব মেসেজ ধরে হিসাব করা হচ্ছে
     const dailyFeedback = await sql`
       SELECT DATE(created_at) AS day,
+             COUNT(*) AS total,
              COUNT(*) FILTER (WHERE feedback = 'up') AS up,
-             COUNT(*) FILTER (WHERE feedback = 'down') AS down
+             COUNT(*) FILTER (WHERE feedback = 'down') AS down,
+             COUNT(*) FILTER (WHERE feedback IS NULL) AS none
       FROM dream_messages
-      WHERE role = 'ai' AND created_at > now() - interval '30 days' AND feedback IS NOT NULL
+      WHERE role = 'ai' AND created_at > now() - interval '30 days'
       GROUP BY DATE(created_at) ORDER BY day ASC
     `;
 
@@ -167,4 +188,4 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-}
+          }
