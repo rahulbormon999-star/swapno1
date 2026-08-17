@@ -107,6 +107,14 @@ export default async function handler(req, res) {
       GROUP BY DATE(created_at) ORDER BY day ASC
     `;
 
+    // dream_messages এর role='user' রো ধরে গোনা হচ্ছে — নতুন সাইনআপ না, বরং কতজন ভিন্ন ইউজার সেদিন অ্যাপ ব্যবহার করেছে (DAU)
+    const dailyActiveUsers = await sql`
+      SELECT DATE(created_at) AS day, COUNT(DISTINCT user_id) AS count
+      FROM dream_messages
+      WHERE role = 'user' AND created_at > now() - interval '30 days'
+      GROUP BY DATE(created_at) ORDER BY day ASC
+    `;
+
     const dailyTokens = await sql`
       SELECT DATE(created_at) AS day, COALESCE(SUM(total_tokens), 0) AS count
       FROM token_usage
@@ -131,6 +139,14 @@ export default async function handler(req, res) {
       SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(*) AS count
       FROM users
       WHERE created_at > now() - interval '12 months'
+      GROUP BY TO_CHAR(created_at, 'YYYY-MM') ORDER BY month ASC
+    `;
+
+    // মাসিক Active Users (MAU) — কতজন ভিন্ন ইউজার সেই মাসে অন্তত একবার ব্যবহার করেছে
+    const monthlyActiveUsers = await sql`
+      SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(DISTINCT user_id) AS count
+      FROM dream_messages
+      WHERE role = 'user' AND created_at > now() - interval '12 months'
       GROUP BY TO_CHAR(created_at, 'YYYY-MM') ORDER BY month ASC
     `;
 
@@ -176,9 +192,11 @@ export default async function handler(req, res) {
       tokenTotals: tokenTotals[0],
       feedbackTotals: feedbackTotals[0],
       dailyUsers,
+      dailyActiveUsers,
       dailyTokens,
       dailyFeedback,
       monthlyUsers,
+      monthlyActiveUsers,
       monthlyTokens,
       topCategories,
       categoriesLast30Days,
@@ -188,4 +206,4 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-          }
+}
