@@ -178,8 +178,7 @@ export default async function handler(req, res) {
         CASE
           WHEN model LIKE 'openrouter:%' THEN 'OpenRouter'
           WHEN model LIKE 'synthesis:%' THEN 'Synthesis'
-          WHEN model LIKE 'llama%' THEN 'Groq'
-          ELSE model
+          ELSE 'Groq'
         END AS model_group,
         COUNT(*) AS requests,
         COALESCE(SUM(total_tokens), 0) AS tokens
@@ -206,4 +205,4 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-}
+        }
