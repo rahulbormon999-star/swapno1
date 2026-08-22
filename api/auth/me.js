@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     const rows = await sql`
       SELECT id, login_source, first_name, last_name, email, phone, profile_picture,
-             plan, banned, ban_reason, created_at
+             plan, banned, ban_reason, suspended_until, suspend_reason, created_at
       FROM users WHERE id = ${userId}
     `;
 
@@ -33,10 +33,14 @@ export default async function handler(req, res) {
     if (rows[0].banned) {
       return res.status(403).json({ error: 'Your account has been banned' + (rows[0].ban_reason ? `: ${rows[0].ban_reason}` : '') });
     }
+    if (rows[0].suspended_until && new Date(rows[0].suspended_until) > new Date()) {
+      const until = new Date(rows[0].suspended_until).toLocaleString();
+      return res.status(403).json({ error: `Your account is suspended until ${until}` + (rows[0].suspend_reason ? `: ${rows[0].suspend_reason}` : '') });
+    }
 
     return res.status(200).json({ user: rows[0] });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-}
+      }
