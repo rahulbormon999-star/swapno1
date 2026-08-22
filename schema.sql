@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
   ban_reason TEXT,
   banned_at TIMESTAMPTZ,
 
+  suspended_until TIMESTAMPTZ,             -- নির্দিষ্ট সময় পর্যন্ত সাসপেন্ড (NULL মানে সাসপেন্ড না)
+  suspend_reason TEXT,
+
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -27,6 +30,18 @@ CREATE INDEX IF NOT EXISTS idx_users_devonix_id ON users(devonix_user_id);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_login_source ON users(login_source);
 CREATE INDEX IF NOT EXISTS idx_users_banned ON users(banned);
+CREATE INDEX IF NOT EXISTS idx_users_suspended ON users(suspended_until);
+
+-- ================= আগে থেকে টেবিল বানানো থাকলে এই দুই লাইন আলাদাভাবে রান করুন =================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspend_reason TEXT;
+
+-- ================= অ্যাপ-ওয়াইড সেটিংস (Maintenance Mode ইত্যাদি) =================
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+INSERT INTO app_settings (key, value) VALUES ('maintenance_mode', 'false') ON CONFLICT (key) DO NOTHING;
 
 -- ================= Email OTP (শুধু "Continue with Email" লগইনের জন্য) =================
 CREATE TABLE IF NOT EXISTS email_otps (
