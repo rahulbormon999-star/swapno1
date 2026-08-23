@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pravax Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+  body { background: #f0f2f5; min-height: 100vh; padding: 16px; }
+
+  .title { text-align: center; font-size: 26px; font-weight: 800; margin: 16px 0 22px;
+    background: linear-gradient(90deg, #2aabeb, #60cce4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .gate { max-width: 380px; margin: 80px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .gate input { width: 100%; padding: 12px 14px; border: 1px solid #ccd0d5; border-radius: 8px; font-size: 15px; margin-bottom: 12px; outline: none; }
+  .gate button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #2aabeb; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .gate-error { color: #e02424; font-size: 13px; margin-top: 8px; text-align: center; }
+
+  #dashboard { display: none; max-width: 960px; margin: 0 auto; }
+
+  .admin-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: #fff; padding: 6px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-btn { flex-shrink: 0; padding: 10px 14px; border: none; background: transparent; border-radius: 8px; font-weight: 700; font-size: 13px; color: #64748b; cursor: pointer; white-space: nowrap; }
+  .tab-btn.active { background: #2aabeb; color: #fff; }
+  .tab-content { display: none; } .tab-content.active { display: block; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .toolbar .count { color: #5f6368; font-size: 14px; }
+  .refresh-btn { padding: 10px 16px; border: none; border-radius: 8px; background: #2aabeb; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 16px 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  .stat-card .num { font-size: 22px; font-weight: 800; color: #2aabeb; }
+  .stat-card .label { font-size: 11px; color: #64748b; margin-top: 4px; text-transform: uppercase; }
+  @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .search-box { width: 100%; padding: 12px 14px; border: 1px solid #ccd0d5; border-radius: 10px; font-size: 15px; margin-bottom: 16px; outline: none; }
+
+  .source-chip { flex: 1; padding: 9px 6px; border: 1.5px solid #dbe3ee; background: #fff; border-radius: 9px; font-weight: 700; font-size: 12.5px; color: #64748b; cursor: pointer; }
+  .source-chip.active { background: #2aabeb; color: #fff; border-color: #2aabeb; }
+
+  .user-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.05); padding: 16px; margin-bottom: 12px; display: flex; gap: 14px; align-items: center; }
+  .user-card img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #f0f2f5; flex-shrink: 0; }
+  .user-info { flex-grow: 1; min-width: 0; }
+  .user-info .name { font-weight: 700; font-size: 15px; color: #1e293b; }
+  .user-info .detail { font-size: 12.5px; color: #64748b; margin-top: 2px; word-break: break-word; }
+  .source-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-left: 6px; }
+  .src-devonix { background: #e0f2fe; color: #0369a1; }
+  .src-email { background: #f1f5f9; color: #475569; }
+  .banned-tag { display: inline-block; background: #fee2e2; color: #dc2626; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-left: 6px; }
+  .card-buttons { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .open-btn, .delete-btn, .ban-btn, .unban-btn { border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .open-btn { background: #e0f2fe; color: #0369a1; }
+  .delete-btn { background: #fee2e2; color: #dc2626; }
+  .ban-btn { background: #fff7ed; color: #c2410c; }
+  .unban-btn { background: #dcfce7; color: #16a34a; }
+
+  .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 18px 0 6px; }
+  .page-btn { padding: 9px 16px; border: 1px solid #dbe3ee; background: #fff; border-radius: 8px; font-weight: 700; font-size: 13px; color: #2aabeb; cursor: pointer; }
+  .page-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: #64748b; font-weight: 600; }
+
+  .empty-state { text-align: center; color: #64748b; padding: 40px 0; }
+
+  /* Analytics */
+  .analytics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
+  @media (max-width: 640px) { .analytics-grid { grid-template-columns: repeat(2, 1fr); } }
+  .analytics-card { background: #fff; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  .analytics-card .num { font-size: 22px; font-weight: 800; color: #2aabeb; }
+  .analytics-card .label { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .section-title { font-size: 13px; font-weight: 800; color: #2aabeb; margin: 20px 0 8px; }
+  .bar-row { display: flex; align-items: flex-end; gap: 3px; height: 120px; background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 10px; overflow-x: auto; }
+  .bar { flex: 1; min-width: 6px; background: #2aabeb; border-radius: 3px 3px 0 0; min-height: 3px; }
+  .bar.down { background: #f87171; }
+  .bar-label { font-size: 8px; color: #94a3b8; text-align: center; margin-top: 4px; }
+  .cat-list { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  .cat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-name { flex: 1; font-size: 13px; font-weight: 600; color: #1e293b; }
+  .cat-bar-bg { flex: 2; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; background: #2aabeb; }
+  .cat-count { font-size: 12px; font-weight: 700; color: #64748b; width: 34px; text-align: right; }
+
+  /* User detail modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px 12px; }
+
+  /* এতদিন এই ক্লাসের CSS ছিল না বলেই suspend ফর্ম সবসময় দেখা যাচ্ছিল — এখন ঠিক মোডাল হিসেবে লুকানো/দেখানো হবে */
+  .settings-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 210; align-items: center; justify-content: center; padding: 20px; }
+  .settings-overlay.show { display: flex; }
+  .settings-panel { background: #fff; border-radius: 16px; padding: 22px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,.25); animation: popIn .2s ease-out; }
+  @keyframes popIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .close-settings-btn { width: 100%; margin-top: 10px; padding: 11px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 10px; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+  .modal-overlay.active { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 520px; margin-top: 24px; }
+  .modal-box h3 { font-size: 17px; margin-bottom: 4px; color: #1c1e21; display: flex; justify-content: space-between; }
+  .modal-close { cursor: pointer; font-size: 20px; color: #64748b; background: none; border: none; }
+  .modal-sub { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+  .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .mini-stat { background: #f8fafc; border-radius: 10px; padding: 10px; text-align: center; }
+  .mini-stat .n { font-size: 16px; font-weight: 800; color: #2aabeb; }
+  .mini-stat .l { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .modal-action-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .modal-action-row button { flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .msg-item { padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+  .msg-item.user { background: #eef2ff; }
+  .msg-item.ai { background: #f8fafc; }
+  .msg-meta { font-size: 10px; color: #94a3b8; margin-top: 6px; }
+
+  /* নতুন ট্যাবগুলোর জন্য */
+  .audit-row { padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-action { font-weight: 700; color: #1e293b; }
+  .audit-action.ban_user { color: #c2410c; }
+  .audit-action.unban_user { color: #16a34a; }
+  .audit-action.delete_user { color: #dc2626; }
+  .audit-action.suspend_user { color: #b45309; }
+  .audit-action.unsuspend_user { color: #0369a1; }
+  #maintenanceSlider::before { content: ''; position: absolute; height: 22px; width: 22px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+  #maintenanceToggle:checked + #maintenanceSlider::before { transform: translateX(22px); }
+  .audit-meta { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+  .satisfaction-badge { display: inline-block; font-size: 26px; font-weight: 800; }
+  .big-card { background: #fff; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 16px; }
+  .big-card .num { font-size: 34px; font-weight: 800; color: #2aabeb; }
+  .big-card .label { font-size: 13px; color: #64748b; margin-top: 4px; }
+  .quick-link-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .quick-link { flex: 1; min-width: 100px; padding: 10px; background: #f8fafc; border-radius: 10px; text-align: center; font-size: 12px; font-weight: 700; color: #2aabeb; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="title"><i>Pravax Admin</i></div>
+
+<div class="gate" id="gate">
+  <input type="password" id="adminPassword" placeholder="Admin Password">
+  <button onclick="unlock()">Login</button>
+  <div class="gate-error" id="gateError"></div>
+</div>
+
+<div id="dashboard">
+  <div class="admin-tabs">
+    <button class="tab-btn active" id="tabBtnUsers" onclick="switchTab('users')">👥 Users</button>
+    <button class="tab-btn" id="tabBtnBanned" onclick="switchTab('banned')">🚫 Banned</button>
+    <button class="tab-btn" id="tabBtnOverview" onclick="switchTab('overview')">🏠 Overview</button>
+    <button class="tab-btn" id="tabBtnGrowth" onclick="switchTab('growth')">📈 Growth</button>
+    <button class="tab-btn" id="tabBtnTokens" onclick="switchTab('tokens')">🔢 Tokens</button>
+    <button class="tab-btn" id="tabBtnFeedback" onclick="switchTab('feedback')">👍 Feedback</button>
+    <button class="tab-btn" id="tabBtnCategories" onclick="switchTab('categories')">🏷️ Categories</button>
+    <button class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">📜 Audit</button>
+    <button class="tab-btn" id="tabBtnKnowledge" onclick="switchTab('knowledge')">📚 Knowledge</button>
+  </div>
+
+  <!-- ================= ইউজার ট্যাব ================= -->
+  <div class="tab-content active" id="tabUsers">
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by name or email" oninput="onSearchInput()">
+    <div class="source-filter-row" id="sourceFilterRow" style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="source-chip active" id="srcChipAll" onclick="filterBySource('all')">All</button>
+      <button class="source-chip" id="srcChipDevonix" onclick="filterBySource('devonix')">🔵 Dev-Onix</button>
+      <button class="source-chip" id="srcChipEmail" onclick="filterBySource('email')">✉️ Email</button>
+    </div>
+    <div class="toolbar">
+      <span class="count" id="userCount">Loading...</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="refresh-btn" onclick="loadUsers(1)">Refresh</button>
+        <button class="refresh-btn" style="background:#e0f2fe;color:#0369a1;" onclick="exportCsv()">⬇️ CSV</button>
+        <button class="refresh-btn" style="background:#e4e6eb;color:#1c1e21;" onclick="adminLogout()">Logout</button>
+      </div>
+    </div>
+    <div id="userList"></div>
+    <div class="pagination" id="userPagination"></div>
+  </div>
+
+  <!-- ================= ব্যান করা ইউজার ট্যাব ================= -->
+  <div class="tab-content" id="tabBanned">
+    <div class="toolbar">
+      <span class="count" id="bannedCount">Loading...</span>
+      <button class="refresh-btn" onclick="loadBanned(1)">Refresh</button>
+    </div>
+    <div id="bannedList"></div>
+    <div class="pagination" id="bannedPagination"></div>
+  </div>
+
+  <!-- ================= Overview ট্যাব ================= -->
+  <div class="tab-content" id="tabOverview">
+    <div id="overviewContent"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <!-- ================= Growth ট্যাব ================= -->
+  <div class="tab-content" id="tabGrowth">
+    <div id="growthContent"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <!-- ================= Tokens ট্যাব ================= -->
+  <div class="tab-content" id="tabTokens">
+    <div id="tokensContent"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <!-- ================= Feedback ট্যাব ================= -->
+  <div class="tab-content" id="tabFeedback">
+    <div id="feedbackContent"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <!-- ================= Categories ট্যাব ================= -->
+  <div class="tab-content" id="tabCategories">
+    <div id="categoriesContent"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <!-- ================= Audit Log ট্যাব ================= -->
+  <div class="tab-content" id="tabAudit">
+    <div class="toolbar">
+      <span class="count" id="auditCount">Loading...</span>
+      <button class="refresh-btn" onclick="loadAudit(1)">Refresh</button>
+    </div>
+    <div class="cat-list" id="auditList"></div>
+    <div class="pagination" id="auditPagination"></div>
+  </div>
+
+  <!-- ================= Knowledge (RAG) ট্যাব ================= -->
+  <div class="tab-content" id="tabKnowledge">
+    <div class="section-title">এখন পর্যন্ত যোগ করা জ্ঞানভাণ্ডার</div>
+    <div id="knowledgeSummary"><div class="empty-state">Loading...</div></div>
+
+    <div class="section-title" style="margin-top:20px;">নতুন টেক্সট যোগ করুন</div>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <input type="text" id="kTradition" placeholder="tradition (যেমন: sanatan, islamic, psychology)" style="flex:1; padding:10px; border:1px solid #dbe3ee; border-radius:8px; font-size:13px;">
+    </div>
+    <input type="text" id="kSourceRef" placeholder="source reference (যেমন: Garuda Purana Ch. 5) — ঐচ্ছিক" style="width:100%; padding:10px; border:1px solid #dbe3ee; border-radius:8px; font-size:13px; margin-bottom:10px;">
+    <textarea id="kText" placeholder="এখানে টেক্সট পেস্ট করুন (একবারে সর্বোচ্চ ~২ লক্ষ ক্যারেক্টার)" style="width:100%; min-height:180px; padding:10px; border:1px solid #dbe3ee; border-radius:8px; font-size:13px; font-family:inherit; margin-bottom:10px;"></textarea>
+    <button class="refresh-btn" style="width:100%; padding:12px;" onclick="ingestKnowledge()" id="ingestBtn">⬆️ Chunk করে Embed করে সেভ করুন</button>
+    <div id="ingestResult" style="margin-top:10px; font-size:13px;"></div>
+  </div>
+</div>
+
+<!-- ================= ইউজার ডিটেইল মোডাল ================= -->
+<div class="modal-overlay" id="userDetailModal">
+  <div class="modal-box">
+    <h3 id="modalUserName">- <button class="modal-close" onclick="closeUserDetail()">✕</button></h3>
+    <div class="modal-sub" id="modalUserEmail"></div>
+
+    <div class="mini-stats">
+      <div class="mini-stat"><div class="n" id="mTokens">0</div><div class="l">Total Tokens</div></div>
+      <div class="mini-stat"><div class="n" id="mUp">0</div><div class="l">👍 Up</div></div>
+      <div class="mini-stat"><div class="n" id="mDown">0</div><div class="l">👎 Down</div></div>
+    </div>
+
+    <div class="section-title" style="margin-top:0;">Top Categories</div>
+    <div class="cat-list" id="modalCategories" style="margin-bottom:16px;"></div>
+
+    <div class="modal-action-row">
+      <button class="ban-btn" id="modalBanBtn" onclick="modalBanUser()">🚫 Ban</button>
+      <button class="unban-btn" id="modalUnbanBtn" onclick="modalUnbanUser()" style="display:none;">✅ Unban</button>
+      <button class="delete-btn" onclick="modalDeleteUser()">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PAGE_SIZE = 20;
+  let usersPage = 1, usersTotalPages = 1;
+  let currentSearch = '';
+  let currentSourceFilter = 'all';
+  let bannedPage = 1, bannedTotalPages = 1;
+  let auditPage = 1, auditTotalPages = 1;
+  let searchDebounceTimer = null;
+  let currentDetailUserId = null;
+
+  async function unlock() {
+    const pw = document.getElementById('adminPassword').value.trim();
+    if (!pw) return;
+    const gateError = document.getElementById('gateError');
+    gateError.innerText = '';
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      });
+      if (!res.ok) { gateError.innerText = 'Incorrect password'; return; }
+      document.getElementById('adminPassword').value = '';
+      showDashboard();
+    } catch (e) { gateError.innerText = 'Network error'; }
+  }
+
+  function showDashboard() {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadUsers(1);
+  }
+
+  async function adminLogout() {
+    try { await fetch('/api/admin/login', { method: 'DELETE' }); } catch(e) {}
+    location.reload();
+  }
+
+  (async function checkExistingAdminSession() {
+    try {
+      const res = await fetch('/api/admin/users?limit=1');
+      if (res.ok) showDashboard();
+    } catch (e) {}
+  })();
+
+  document.getElementById('adminPassword').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    if (tab === 'banned') loadBanned(1);
+    if (tab === 'overview') loadOverview();
+    if (tab === 'growth') loadGrowth();
+    if (tab === 'tokens') loadTokens();
+    if (tab === 'feedback') loadFeedback();
+    if (tab === 'categories') loadCategories();
+    if (tab === 'audit') loadAudit(1);
+    if (tab === 'knowledge') loadKnowledgeSummary();
+  }
+
+  function onSearchInput() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      currentSearch = document.getElementById('searchBox').value.trim();
+      loadUsers(1);
+    }, 400);
+  }
+
+  function filterBySource(source) {
+    currentSourceFilter = source;
+    document.getElementById('srcChipAll').classList.toggle('active', source === 'all');
+    document.getElementById('srcChipDevonix').classList.toggle('active', source === 'devonix');
+    document.getElementById('srcChipEmail').classList.toggle('active', source === 'email');
+    loadUsers(1);
+  }
+
+  // Analytics ট্যাবের "Dev-Onix দিয়ে লগইন" / "Email দিয়ে লগইন" কার্ডে ক্লিক করলে
+  // সরাসরি Users ট্যাবে গিয়ে সেই সোর্স দিয়ে ফিল্টার হয়ে যায়
+  function goToUsersFilteredBySource(source) {
+    switchTab('users');
+    filterBySource(source);
+  }
+
+  function buildPagination(containerId, page, totalPages, fnName) {
+    const c = document.getElementById(containerId);
+    if (totalPages <= 1) { c.innerHTML = ''; return; }
+    c.innerHTML = `
+      <button class="page-btn" ${page <= 1 ? 'disabled' : ''} onclick="${fnName}(${page - 1})">‹ Prev</button>
+      <span class="page-info">Page ${page} / ${totalPages}</span>
+      <button class="page-btn" ${page >= totalPages ? 'disabled' : ''} onclick="${fnName}(${page + 1})">Next ›</button>
+    `;
+  }
+
+  async function loadUsers(page) {
+    usersPage = page || usersPage;
+    document.getElementById('userCount').innerText = 'Loading...';
+    try {
+      const params = new URLSearchParams({ page: usersPage, limit: PAGE_SIZE, search: currentSearch, source: currentSourceFilter, banned: 'any' });
+      const res = await fetch('/api/admin/users?' + params.toString());
+      if (res.status === 401) {
+        document.getElementById('gate').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.users)) { document.getElementById('userCount').innerText = 'Error: ' + (data.error || res.status); return; }
+
+      usersTotalPages = data.totalPages;
+      renderUsers(data.users, data.total);
+      buildPagination('userPagination', usersPage, usersTotalPages, 'loadUsers');
+    } catch (e) { document.getElementById('userCount').innerText = 'Network error'; }
+  }
+
+  function isCurrentlySuspended(u) {
+    return u.suspended_until && new Date(u.suspended_until) > new Date();
+  }
+
+  function renderUsers(users, total) {
+    const list = document.getElementById('userList');
+    document.getElementById('userCount').innerText = `Total found: ${total} (this page: ${users.length})`;
+    if (users.length === 0) { list.innerHTML = `<div class="empty-state">No users found</div>`; return; }
+
+    list.innerHTML = users.map(u => {
+      const suspended = isCurrentlySuspended(u);
+      return `
+      <div class="user-card">
+        <img src="${u.profile_picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+        <div class="user-info">
+          <div class="name">${(u.first_name || '') + ' ' + (u.last_name || '') || 'No Name'}
+            <span class="source-tag ${u.login_source === 'devonix' ? 'src-devonix' : 'src-email'}">${u.login_source === 'devonix' ? 'Dev-Onix' : 'Email'}</span>
+            ${u.banned ? '<span class="banned-tag">BANNED</span>' : ''}
+            ${suspended ? `<span class="banned-tag" style="background:#fef3c7;color:#b45309;">SUSPENDED till ${new Date(u.suspended_until).toLocaleString()}</span>` : ''}
+          </div>
+          <div class="detail">✉️ ${u.email || 'N/A'}</div>
+          <div class="detail">💬 ${u.session_count} sessions &nbsp; 🔢 ${u.total_tokens} tokens</div>
+        </div>
+        <div class="card-buttons">
+          <button class="open-btn" onclick="openUserDetail(${u.id})">Open</button>
+          <button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button>
+          ${u.banned ? `<button class="unban-btn" onclick="unbanUser(${u.id})">Unban</button>` : `<button class="ban-btn" onclick="banUser(${u.id})">Ban</button>`}
+          ${suspended ? `<button class="unban-btn" onclick="unsuspendUser(${u.id})">Unsuspend</button>` : `<button class="ban-btn" style="background:#fef3c7;color:#b45309;" onclick="openSuspendForm(${u.id})">Suspend</button>`}
+        </div>
+      </div>
+    `}).join('');
+  }
+
+  async function unsuspendUser(id) {
+    if (!confirm('Lift suspension for this user?')) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'unsuspend' }) });
+      if (res.ok) loadUsers(usersPage); else alert('Could not unsuspend');
+    } catch (e) { alert('Network error'); }
+  }
+
+  let suspendTargetId = null;
+  function openSuspendForm(id) {
+    suspendTargetId = id;
+    document.getElementById('suspendMonths').value = 0;
+    document.getElementById('suspendDays').value = 1;
+    document.getElementById('suspendHours').value = 0;
+    document.getElementById('suspendMinutes').value = 0;
+    document.getElementById('suspendReason').value = '';
+    document.getElementById('suspendOverlay').classList.add('show');
+  }
+  function closeSuspendForm() {
+    document.getElementById('suspendOverlay').classList.remove('show');
+    suspendTargetId = null;
+  }
+  async function confirmSuspend() {
+    const months = parseInt(document.getElementById('suspendMonths').value) || 0;
+    const days = parseInt(document.getElementById('suspendDays').value) || 0;
+    const hours = parseInt(document.getElementById('suspendHours').value) || 0;
+    const minutes = parseInt(document.getElementById('suspendMinutes').value) || 0;
+    const reason = document.getElementById('suspendReason').value.trim();
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: suspendTargetId, action: 'suspend', months, days, hours, minutes, reason })
+      });
+      const data = await res.json();
+      if (res.ok) { closeSuspendForm(); loadUsers(usersPage); }
+      else alert(data.error || 'Could not suspend');
+    } catch (e) { alert('Network error'); }
+  }
+
+  function exportCsv() {
+    const params = new URLSearchParams({ export: 'csv', search: currentSearch });
+    window.open('/api/admin/users?' + params.toString(), '_blank');
+  }
+
+  // ================= Banned Users ট্যাব =================
+  async function loadBanned(page) {
+    bannedPage = page || bannedPage;
+    document.getElementById('bannedCount').innerText = 'Loading...';
+    try {
+      const params = new URLSearchParams({ page: bannedPage, limit: PAGE_SIZE, search: '', source: 'all', banned: 'true' });
+      const res = await fetch('/api/admin/users?' + params.toString());
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.users)) { document.getElementById('bannedCount').innerText = 'Error: ' + (data.error || res.status); return; }
+
+      bannedTotalPages = data.totalPages;
+      renderBanned(data.users, data.total);
+      buildPagination('bannedPagination', bannedPage, bannedTotalPages, 'loadBanned');
+    } catch (e) { document.getElementById('bannedCount').innerText = 'Network error'; }
+  }
+
+  function renderBanned(users, total) {
+    const list = document.getElementById('bannedList');
+    document.getElementById('bannedCount').innerText = `মোট ব্যান করা: ${total}`;
+    if (users.length === 0) { list.innerHTML = `<div class="empty-state">কোনো ব্যান করা ইউজার নেই 🎉</div>`; return; }
+
+    list.innerHTML = users.map(u => `
+      <div class="user-card">
+        <img src="${u.profile_picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+        <div class="user-info">
+          <div class="name">${(u.first_name || '') + ' ' + (u.last_name || '') || 'No Name'}
+            <span class="source-tag ${u.login_source === 'devonix' ? 'src-devonix' : 'src-email'}">${u.login_source === 'devonix' ? 'Dev-Onix' : 'Email'}</span>
+            <span class="banned-tag">BANNED</span>
+          </div>
+          <div class="detail">✉️ ${u.email || 'N/A'}</div>
+          ${u.ban_reason ? `<div class="detail" style="color:#c2410c;">📝 কারণ: ${u.ban_reason}</div>` : ''}
+          ${u.banned_at ? `<div class="detail" style="color:#94a3b8;">🕒 ${new Date(u.banned_at).toLocaleString()}</div>` : ''}
+        </div>
+        <div class="card-buttons">
+          <button class="open-btn" onclick="openUserDetail(${u.id})">Open</button>
+          <button class="delete-btn" onclick="deleteUserFromBanned(${u.id})">Delete</button>
+          <button class="unban-btn" onclick="unbanUserFromBanned(${u.id})">Unban</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function unbanUserFromBanned(id) {
+    if (!confirm('Unban this user?')) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'unban' }) });
+      if (res.ok) loadBanned(bannedPage); else alert('Could not unban');
+    } catch (e) { alert('Network error'); }
+  }
+
+  async function deleteUserFromBanned(id) {
+    if (!confirm('Deleting this user will also delete all their data. Are you sure?')) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'delete' }) });
+      if (res.ok) loadBanned(bannedPage); else alert('Could not delete');
+    } catch (e) { alert('Network error'); }
+  }
+
+  // ================= Audit Log ট্যাব =================
+  let auditSelectMode = false;
+  let auditSelectedIds = new Set();
+
+  async function loadAudit(page) {
+    auditPage = page || auditPage;
+    auditSelectMode = false;
+    auditSelectedIds.clear();
+    document.getElementById('auditCount').innerText = 'Loading...';
+    try {
+      const res = await fetch('/api/admin/stats?view=audit&page=' + auditPage);
+      const data = await res.json();
+      if (!res.ok) { document.getElementById('auditCount').innerText = 'Error: ' + (data.error || res.status); return; }
+
+      auditTotalPages = data.totalPages;
+      renderAuditToolbar(data.total);
+
+      const list = document.getElementById('auditList');
+      list.innerHTML = data.logs.length === 0
+        ? '<div class="empty-state">এখনো কোনো অ্যাডমিন-কার্যক্রম রেকর্ড হয়নি</div>'
+        : data.logs.map(l => `
+          <div class="audit-row" id="auditRow-${l.id}"
+               onclick="handleAuditRowClick(${l.id})"
+               onmousedown="startAuditLongPress(${l.id})" onmouseup="cancelAuditLongPress()" onmouseleave="cancelAuditLongPress()"
+               ontouchstart="startAuditLongPress(${l.id})" ontouchend="cancelAuditLongPress()" ontouchmove="cancelAuditLongPress()"
+               style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+            <input type="checkbox" class="audit-checkbox" id="auditChk-${l.id}" style="display:none; margin-top:4px;" onclick="event.stopPropagation(); toggleAuditSelect(${l.id});">
+            <div style="flex:1;">
+              <div class="audit-action ${l.action}">${formatAuditAction(l.action)}</div>
+              <div class="audit-meta">
+                ${l.first_name || l.email ? `টার্গেট: ${((l.first_name || '') + ' ' + (l.last_name || '')).trim() || l.email}` : ''}
+                ${l.ip ? ` &nbsp;·&nbsp; IP: ${l.ip}` : ''}
+                &nbsp;·&nbsp; ${new Date(l.created_at).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      buildPagination('auditPagination', auditPage, auditTotalPages, 'loadAudit');
+    } catch (e) { document.getElementById('auditCount').innerText = 'Network error'; }
+  }
+
+  function renderAuditToolbar(total) {
+    const countEl = document.getElementById('auditCount');
+    if (auditSelectMode) {
+      countEl.innerHTML = `${auditSelectedIds.size} টি সিলেক্ট করা হয়েছে
+        <button class="refresh-btn" style="background:#fee2e2;color:#dc2626;margin-left:8px;" onclick="deleteSelectedAudit()">🗑️ Delete Selected</button>
+        <button class="refresh-btn" style="background:#e4e6eb;color:#1c1e21;margin-left:6px;" onclick="loadAudit(auditPage)">Cancel</button>`;
+    } else {
+      countEl.innerText = `মোট এন্ট্রি: ${total} (একটা রো-তে চেপে ধরুন সিলেক্ট করতে)`;
+    }
+  }
+
+  let auditLongPressTimer = null;
+  function startAuditLongPress(id) {
+    auditLongPressTimer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(30);
+      enterAuditSelectMode(id);
+    }, 500);
+  }
+  function cancelAuditLongPress() { clearTimeout(auditLongPressTimer); }
+
+  function enterAuditSelectMode(firstId) {
+    auditSelectMode = true;
+    auditSelectedIds.add(firstId);
+    document.querySelectorAll('.audit-checkbox').forEach(chk => chk.style.display = 'block');
+    document.getElementById(`auditChk-${firstId}`).checked = true;
+    renderAuditToolbar();
+  }
+
+  function handleAuditRowClick(id) {
+    if (auditSelectMode) toggleAuditSelect(id);
+  }
+
+  function toggleAuditSelect(id) {
+    const chk = document.getElementById(`auditChk-${id}`);
+    if (auditSelectedIds.has(id)) { auditSelectedIds.delete(id); chk.checked = false; }
+    else { auditSelectedIds.add(id); chk.checked = true; }
+
+    if (auditSelectedIds.size === 0) {
+      auditSelectMode = false;
+      document.querySelectorAll('.audit-checkbox').forEach(c => c.style.display = 'none');
+      loadAudit(auditPage);
+      return;
+    }
+    renderAuditToolbar();
+  }
+
+  async function deleteSelectedAudit() {
+    if (auditSelectedIds.size === 0) return;
+    if (!confirm(`${auditSelectedIds.size} টি এন্ট্রি স্থায়ীভাবে ডিলিট করবেন?`)) return;
+    try {
+      const res = await fetch('/api/admin/stats', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(auditSelectedIds) })
+      });
+      if (res.ok) loadAudit(auditPage); else alert('Could not delete');
+    } catch (e) { alert('Network error'); }
+  }
+
+  function formatAuditAction(action) {
+    const map = {
+      ban_user: '🚫 ইউজার ব্যান করা হয়েছে', unban_user: '✅ ইউজার আনব্যান করা হয়েছে',
+      delete_user: '🗑️ ইউজার ডিলিট করা হয়েছে',
+      suspend_user: '⏳ ইউজার সাসপেন্ড করা হয়েছে', unsuspend_user: '▶️ ইউজার আনসাসপেন্ড করা হয়েছে'
+    };
+    return map[action] || action;
+  }
+
+  async function deleteUser(id) {
+    if (!confirm('Deleting this user will also delete all their data. Are you sure?')) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'delete' }) });
+      if (res.ok) loadUsers(usersPage); else alert('Could not delete');
+    } catch (e) { alert('Network error'); }
+  }
+
+  async function banUser(id) {
+    const reason = prompt('Reason for ban (optional):', '');
+    if (reason === null) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'ban', reason }) });
+      if (res.ok) loadUsers(usersPage); else alert('Could not ban');
+    } catch (e) { alert('Network error'); }
+  }
+
+  async function unbanUser(id) {
+    if (!confirm('Unban this user?')) return;
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'unban' }) });
+      if (res.ok) loadUsers(usersPage); else alert('Could not unban');
+    } catch (e) { alert('Network error'); }
+  }
+
+  // ================= ইউজার ডিটেইল মোডাল =================
+  async function openUserDetail(id) {
+    currentDetailUserId = id;
+    try {
+      const res = await fetch('/api/admin/users?id=' + id);
+      if (!res.ok) { alert('Could not load'); return; }
+      const data = await res.json();
+      const u = data.user;
+
+      document.getElementById('modalUserName').innerHTML = `${(u.first_name || '') + ' ' + (u.last_name || '') || 'No Name'} <button class="modal-close" onclick="closeUserDetail()">✕</button>`;
+      document.getElementById('modalUserEmail').innerText = `✉️ ${u.email || 'N/A'} · Signed in via ${u.login_source === 'devonix' ? 'Dev-Onix' : 'Email'}`;
+
+      document.getElementById('mTokens').innerText = data.tokenSummary.total_tokens;
+      document.getElementById('mUp').innerText = data.feedbackSummary.up_count;
+      document.getElementById('mDown').innerText = data.feedbackSummary.down_count;
+
+      const maxCat = Math.max(1, ...data.topCategories.map(c => Number(c.count)));
+      document.getElementById('modalCategories').innerHTML = data.topCategories.length === 0
+        ? '<div class="empty-state" style="padding:14px 0;">No data</div>'
+        : data.topCategories.map(c => `
+          <div class="cat-row">
+            <div class="cat-name">${c.category}</div>
+            <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((c.count / maxCat) * 100)}%"></div></div>
+            <div class="cat-count">${c.count}</div>
+          </div>
+        `).join('');
+
+      document.getElementById('modalBanBtn').style.display = u.banned ? 'none' : 'block';
+      document.getElementById('modalUnbanBtn').style.display = u.banned ? 'block' : 'none';
+
+      document.getElementById('userDetailModal').classList.add('active');
+    } catch (e) { alert('Network error'); }
+  }
+
+  function closeUserDetail() {
+    document.getElementById('userDetailModal').classList.remove('active');
+    currentDetailUserId = null;
+  }
+
+  async function modalBanUser() {
+    const reason = prompt('Reason for ban (optional):', '');
+    if (reason === null) return;
+    await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDetailUserId, action: 'ban', reason }) });
+    openUserDetail(currentDetailUserId); loadUsers(usersPage);
+  }
+  async function modalUnbanUser() {
+    await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDetailUserId, action: 'unban' }) });
+    openUserDetail(currentDetailUserId); loadUsers(usersPage);
+  }
+  async function modalDeleteUser() {
+    if (!confirm('Permanently delete this user?')) return;
+    await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentDetailUserId, action: 'delete' }) });
+    closeUserDetail(); loadUsers(usersPage);
+  }
+
+  // ================= শেয়ার্ড ডেটা ক্যাশ (একবার ফেচ করে সব ট্যাবে ব্যবহার) =================
+  let statsCache = null;
+  async function fetchStats() {
+    const res = await fetch('/api/admin/stats');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load stats');
+    statsCache = data;
+    return data;
+  }
+
+  // ================= sparse দৈনিক ডেটাকে continuous ৩০-দিনের সিরিজে রূপান্তর (মাঝের ফাঁকা দিনগুলো 0 দিয়ে ভরাট) =================
+  function fillDailyRange(rawData, days, valueKeys) {
+    const map = {};
+    rawData.forEach(d => {
+      const key = new Date(d.day).toISOString().slice(0, 10);
+      map[key] = d;
+    });
+    const result = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const found = map[key];
+      const entry = { day: key };
+      valueKeys.forEach(k => { entry[k] = found ? Number(found[k]) : 0; });
+      result.push(entry);
+    }
+    return result;
+  }
+
+  function fillMonthlyRange(rawData, months, valueKeys) {
+    const map = {};
+    rawData.forEach(d => { map[d.month] = d; });
+    const result = [];
+    const today = new Date();
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const found = map[key];
+      const entry = { month: key };
+      valueKeys.forEach(k => { entry[k] = found ? Number(found[k]) : 0; });
+      result.push(entry);
+    }
+    return result;
+  }
+
+  // ================= SVG লাইন-চার্ট (একাধিক সিরিজ, লেজেন্ড সহ) — "অসীম রেখা" স্টাইল =================
+  let chartIdCounter = 0;
+
+  // ================= একটামাত্র মেট্রিকের জন্য আলাদা চার্ট — ট্যাপে বিন্দুর সংখ্যা দেখায়, নিচে দৈনিক+মোট হিসাব =================
+  function renderMetricChart(title, color, dateLabels, values, unitLabel) {
+    if (!dateLabels || dateLabels.length === 0) return '<div class="empty-state">No data</div>';
+
+    const chartId = 'mchart' + (chartIdCounter++);
+    const width = 300, height = 130, padTop = 14, padBottom = 4;
+    const n = dateLabels.length;
+    const maxVal = Math.max(1, ...values.map(Number));
+    const usableHeight = height - padTop - padBottom;
+    const stepX = n > 1 ? width / (n - 1) : 0;
+    const total = values.reduce((sum, v) => sum + Number(v), 0);
+
+    const toXY = (v, i) => {
+      const x = n > 1 ? i * stepX : width / 2;
+      const y = padTop + usableHeight - (Number(v) / maxVal) * usableHeight;
+      return [x, y];
+    };
+
+    const pts = values.map((v, i) => toXY(v, i).join(',')).join(' ');
+    const areaPts = `0,${height} ${pts} ${width},${height}`;
+    const dots = values.map((v, i) => {
+      const [x, y] = toXY(v, i);
+      return `<circle cx="${x}" cy="${y}" r="3.5" fill="${color}" style="cursor:pointer;" onclick="showChartPointValue('${chartId}', '${dateLabels[i].replace(/'/g, "")}', ${Number(v)})" />`;
+    }).join('');
+
+    const labelStep = Math.ceil(n / 6) || 1;
+    const labelDivs = dateLabels.map((l, i) => (i % labelStep === 0 || i === n - 1)
+      ? `<div style="position:absolute; left:${n > 1 ? (i / (n - 1)) * 100 : 50}%; transform:translateX(-50%); font-size:9px; color:#94a3b8; white-space:nowrap;">${l}</div>`
+      : '').join('');
+
+    const dailyRows = dateLabels.map((l, i) => `
+      <div style="display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #f1f5f9;font-size:12px;">
+        <span style="color:#64748b;">${l}</span>
+        <span style="font-weight:700;color:${color};">${values[i]}</span>
+      </div>`).join('');
+
+    return `
+      <div class="big-card" style="text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:700;font-size:14px;color:#1c1e21;">${title}</div>
+          <div style="font-size:12.5px;color:${color};font-weight:700;" id="${chartId}_value">মোট: ${total}</div>
+        </div>
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width:100%; height:${height}px; display:block;">
+          <polyline points="${areaPts}" fill="${color}18" stroke="none" />
+          <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke" />
+          ${dots}
+        </svg>
+        <div style="position:relative; height:14px; margin:4px 0 10px;">${labelDivs}</div>
+        <details>
+          <summary style="cursor:pointer; font-size:12px; color:#2aabeb; font-weight:700;">📋 দৈনিক হিসাব দেখুন (মোট: ${total}${unitLabel ? ' ' + unitLabel : ''})</summary>
+          <div style="max-height:220px; overflow-y:auto; margin-top:6px;">${dailyRows}</div>
+        </details>
+      </div>
+    `;
+  }
+
+  function showChartPointValue(chartId, label, value) {
+    const el = document.getElementById(chartId + '_value');
+    if (el) el.innerText = `${label}: ${value}`;
+  }
+
+  // ================= Overview ট্যাব — দ্রুত সারসংক্ষেপ + বাকি ট্যাবগুলোতে quick link =================
+  async function loadOverview() {
+    const c = document.getElementById('overviewContent');
+    c.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const data = statsCache || await fetchStats();
+      const t = data.totals, tok = data.tokenTotals, fb = data.feedbackTotals;
+      const satisfaction = (Number(fb.total_up) + Number(fb.total_down)) > 0
+        ? Math.round((Number(fb.total_up) / (Number(fb.total_up) + Number(fb.total_down))) * 100)
+        : null;
+
+      c.innerHTML = `
+        <div class="analytics-grid">
+          <div class="analytics-card"><div class="num">${t.total_users}</div><div class="label">Total Users</div></div>
+          <div class="analytics-card"><div class="num">${t.new_today}</div><div class="label">New Today</div></div>
+          <div class="analytics-card"><div class="num">${tok.total_tokens}</div><div class="label">Total Tokens</div></div>
+          <div class="analytics-card"><div class="num">${satisfaction !== null ? satisfaction + '%' : '—'}</div><div class="label">Satisfaction</div></div>
+        </div>
+        <div class="section-title">দ্রুত দেখুন</div>
+        <div class="quick-link-row">
+          <div class="quick-link" onclick="switchTab('growth')">📈 Growth</div>
+          <div class="quick-link" onclick="switchTab('tokens')">🔢 Tokens</div>
+          <div class="quick-link" onclick="switchTab('feedback')">👍 Feedback</div>
+          <div class="quick-link" onclick="switchTab('categories')">🏷️ Categories</div>
+          <div class="quick-link" onclick="switchTab('banned')">🚫 Banned Users</div>
+          <div class="quick-link" onclick="switchTab('audit')">📜 Audit Log</div>
+        </div>
+        <div class="section-title">সিস্টেম কন্ট্রোল</div>
+        <div class="big-card" style="display:flex; align-items:center; justify-content:space-between; text-align:left;">
+          <div>
+            <div style="font-weight:700; font-size:14px;">🚧 Maintenance Mode</div>
+            <div style="font-size:12px; color:#64748b;" id="maintenanceStatusText">Loading...</div>
+          </div>
+          <label style="position:relative; display:inline-block; width:50px; height:28px;">
+            <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenance()" style="opacity:0; width:0; height:0;">
+            <span id="maintenanceSlider" style="position:absolute; cursor:pointer; inset:0; background:#cbd5e1; border-radius:28px; transition:.3s;"></span>
+          </label>
+        </div>
+      `;
+      loadMaintenanceStatus();
+    } catch (e) { c.innerHTML = '<div class="empty-state">Network error</div>'; }
+  }
+
+  async function loadMaintenanceStatus() {
+    try {
+      const res = await fetch('/api/admin/stats?view=maintenance');
+      const data = await res.json();
+      const toggle = document.getElementById('maintenanceToggle');
+      const slider = document.getElementById('maintenanceSlider');
+      const text = document.getElementById('maintenanceStatusText');
+      if (!toggle) return;
+      toggle.checked = data.enabled;
+      slider.style.background = data.enabled ? '#dc2626' : '#cbd5e1';
+      text.innerText = data.enabled ? '⚠️ চালু আছে — ইউজাররা এখন অ্যাপ ব্যবহার করতে পারছে না' : 'বন্ধ আছে — সব স্বাভাবিক চলছে';
+    } catch (e) {}
+  }
+
+  async function toggleMaintenance() {
+    const toggle = document.getElementById('maintenanceToggle');
+    const enabled = toggle.checked;
+    try {
+      await fetch('/api/admin/stats?view=maintenance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+      loadMaintenanceStatus();
+    } catch (e) { alert('Network error'); toggle.checked = !enabled; }
+  }
+
+  // ================= Growth ট্যাব — নতুন ইউজার ও লগইন-সোর্স বিস্তারিত =================
+  async function loadGrowth() {
+    const c = document.getElementById('growthContent');
+    c.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const data = statsCache || await fetchStats();
+      const t = data.totals;
+
+      const dailyLabels = fillDailyRange(data.dailyUsers, 30, ['count']).map(d => new Date(d.day).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+      const dailyNewValues = fillDailyRange(data.dailyUsers, 30, ['count']).map(d => d.count);
+      const dailyChart = renderMetricChart('দৈনিক নতুন ইউজার (গত ৩০ দিন)', '#2aabeb', dailyLabels, dailyNewValues, 'জন');
+
+      const dailyActiveValues = fillDailyRange(data.dailyActiveUsers, 30, ['count']).map(d => d.count);
+      const dailyActiveChart = renderMetricChart('দৈনিক সক্রিয় ইউজার (DAU) — কতজন সেদিন ব্যবহার করেছে', '#16a34a', dailyLabels, dailyActiveValues, 'জন');
+
+      const monthlyFilled = fillMonthlyRange(data.monthlyUsers, 12, ['count']);
+      const monthlyLabels = monthlyFilled.map(d => {
+        const [y, m] = d.month.split('-');
+        return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+      });
+      const monthlyChart = renderMetricChart('মাসিক নতুন ইউজার (গত ১২ মাস)', '#2aabeb', monthlyLabels, monthlyFilled.map(d => d.count), 'জন');
+
+      const monthlyActiveValues = fillMonthlyRange(data.monthlyActiveUsers, 12, ['count']).map(d => d.count);
+      const monthlyActiveChart = renderMetricChart('মাসিক সক্রিয় ইউজার (MAU) — কতজন সেই মাসে ব্যবহার করেছে', '#16a34a', monthlyLabels, monthlyActiveValues, 'জন');
+
+      c.innerHTML = `
+        <div class="analytics-grid">
+          <div class="analytics-card"><div class="num">${t.total_users}</div><div class="label">Total Users</div></div>
+          <div class="analytics-card"><div class="num">${t.new_today}</div><div class="label">New Today</div></div>
+          <div class="analytics-card" style="cursor:pointer;" onclick="goToUsersFilteredBySource('devonix')"><div class="num">${t.users_via_devonix}</div><div class="label">Via Dev-Onix ›</div></div>
+          <div class="analytics-card" style="cursor:pointer;" onclick="goToUsersFilteredBySource('email')"><div class="num">${t.users_via_email}</div><div class="label">Via Email ›</div></div>
+        </div>
+        ${dailyChart}
+        ${dailyActiveChart}
+        ${monthlyChart}
+        ${monthlyActiveChart}
+      `;
+    } catch (e) { c.innerHTML = '<div class="empty-state">Network error</div>'; }
+  }
+
+  // ================= Tokens ট্যাব — মডেল-ভিত্তিক খরচ ব্রেকডাউন সহ =================
+  async function loadTokens() {
+    const c = document.getElementById('tokensContent');
+    c.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const data = statsCache || await fetchStats();
+      const tok = data.tokenTotals;
+
+      const dailyFilled = fillDailyRange(data.dailyTokens, 30, ['count']);
+      const dailyLabels = dailyFilled.map(d => new Date(d.day).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+      const dailyChart = renderMetricChart('দৈনিক টোকেন ব্যবহার (গত ৩০ দিন)', '#2aabeb', dailyLabels, dailyFilled.map(d => d.count), 'টোকেন');
+
+      const monthlyFilled = fillMonthlyRange(data.monthlyTokens, 12, ['count']);
+      const monthlyLabels = monthlyFilled.map(d => {
+        const [y, m] = d.month.split('-');
+        return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+      });
+      const monthlyChart = renderMetricChart('মাসিক টোকেন ব্যবহার (গত ১২ মাস)', '#2aabeb', monthlyLabels, monthlyFilled.map(d => d.count), 'টোকেন');
+
+      const maxModel = Math.max(1, ...data.modelBreakdown.map(m => Number(m.tokens)));
+      const modelRows = data.modelBreakdown.map(m => `
+        <div class="cat-row">
+          <div class="cat-name">${m.model_group} <span style="color:#94a3b8;font-weight:400;">(${m.requests} calls)</span></div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((m.tokens / maxModel) * 100)}%"></div></div>
+          <div class="cat-count">${m.tokens}</div>
+        </div>`).join('');
+
+      c.innerHTML = `
+        <div class="analytics-grid">
+          <div class="analytics-card"><div class="num">${tok.total_tokens}</div><div class="label">Total Tokens</div></div>
+          <div class="analytics-card"><div class="num">${tok.tokens_today}</div><div class="label">Today's Tokens</div></div>
+        </div>
+        ${dailyChart}
+        ${monthlyChart}
+        <div class="section-title">মডেল অনুযায়ী খরচ (Groq vs OpenRouter vs Synthesis)</div>
+        <div class="cat-list">${modelRows || '<div class="empty-state" style="padding:14px 0;">No data</div>'}</div>
+      `;
+    } catch (e) { c.innerHTML = '<div class="empty-state">Network error</div>'; }
+  }
+
+  // ================= Feedback ট্যাব — satisfaction rate + ৪ ধরনের দৈনিক ডেটা সহ =================
+  async function loadFeedback() {
+    const c = document.getElementById('feedbackContent');
+    c.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const data = statsCache || await fetchStats();
+      const fb = data.feedbackTotals;
+      const totalFb = Number(fb.total_up) + Number(fb.total_down);
+      const satisfaction = totalFb > 0 ? Math.round((Number(fb.total_up) / totalFb) * 100) : null;
+
+      const dailyFilled = fillDailyRange(data.dailyFeedback, 30, ['total', 'up', 'down', 'none']);
+      const dailyLabels = dailyFilled.map(d => new Date(d.day).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+
+      const totalChart = renderMetricChart('🔍 দৈনিক মোট সার্চ/উত্তর', '#6366f1', dailyLabels, dailyFilled.map(d => d.total), 'টি');
+      const upChart = renderMetricChart('👍 দৈনিক লাইক', '#16a34a', dailyLabels, dailyFilled.map(d => d.up), 'টি');
+      const downChart = renderMetricChart('👎 দৈনিক ডিসলাইক', '#dc2626', dailyLabels, dailyFilled.map(d => d.down), 'টি');
+      const noneChart = renderMetricChart('➖ দৈনিক কোনো ফিডব্যাক না', '#94a3b8', dailyLabels, dailyFilled.map(d => d.none), 'টি');
+
+      c.innerHTML = `
+        <div class="big-card">
+          <div class="satisfaction-badge" style="color:${satisfaction === null ? '#94a3b8' : satisfaction >= 70 ? '#16a34a' : satisfaction >= 40 ? '#d97706' : '#dc2626'};">
+            ${satisfaction !== null ? satisfaction + '%' : 'কোনো ডেটা নেই'}
+          </div>
+          <div class="label">Satisfaction Rate (👍 / মোট ফিডব্যাক)</div>
+        </div>
+        <div class="analytics-grid">
+          <div class="analytics-card"><div class="num">${fb.total_up}</div><div class="label">👍 Total Up</div></div>
+          <div class="analytics-card"><div class="num">${fb.total_down}</div><div class="label">👎 Total Down</div></div>
+        </div>
+        ${totalChart}
+        ${upChart}
+        ${downChart}
+        ${noneChart}
+      `;
+    } catch (e) { c.innerHTML = '<div class="empty-state">Network error</div>'; }
+  }
+
+  // ================= Categories ট্যাব =================
+  async function loadCategories() {
+    const c = document.getElementById('categoriesContent');
+    c.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const data = statsCache || await fetchStats();
+      const maxCat = Math.max(1, ...data.topCategories.map(c2 => Number(c2.count)));
+      const catRows = data.topCategories.map(c2 => `
+        <div class="cat-row" style="cursor:pointer;" onclick="openCategoryBreakdown('${c2.category}')">
+          <div class="cat-name">${c2.category}</div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((c2.count / maxCat) * 100)}%"></div></div>
+          <div class="cat-count">${c2.count}</div>
+        </div>`).join('');
+
+      const maxCat30 = Math.max(1, ...data.categoriesLast30Days.map(c2 => Number(c2.count)));
+      const catRows30 = data.categoriesLast30Days.map(c2 => `
+        <div class="cat-row" style="cursor:pointer;" onclick="openCategoryBreakdown('${c2.category}')">
+          <div class="cat-name">${c2.category}</div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((c2.count / maxCat30) * 100)}%"></div></div>
+          <div class="cat-count">${c2.count}</div>
+        </div>`).join('');
+
+      c.innerHTML = `
+        <div class="section-title">টপ ক্যাটাগরি — গত ৩০ দিন (ট্রেন্ড দেখতে)</div>
+        <div class="cat-list">${catRows30 || '<div class="empty-state" style="padding:14px 0;">No data</div>'}</div>
+
+        <div class="section-title" style="margin-top:20px;">টপ ক্যাটাগরি — সর্বমোট — ক্লিক করলে ভেতরের ব্রেকডাউন</div>
+        <div class="cat-list">${catRows || '<div class="empty-state" style="padding:14px 0;">No data</div>'}</div>
+      `;
+    } catch (e) { c.innerHTML = '<div class="empty-state">Network error</div>'; }
+  }
+
+  // ================= Category-এর ভেতরের entity ব্রেকডাউন (দুই-স্তরের ড্রিলডাউন) =================
+  async function openCategoryBreakdown(category) {
+    const overlay = document.getElementById('categoryModal');
+    const box = document.getElementById('categoryModalContent');
+    overlay.classList.add('active');
+    box.innerHTML = '<div class="empty-state">Loading...</div>';
+
+    try {
+      const res = await fetch('/api/admin/stats?category=' + encodeURIComponent(category));
+      const data = await res.json();
+      if (!res.ok) { box.innerHTML = '<div class="empty-state">Could not load</div>'; return; }
+
+      if (data.entityBreakdown.length === 0) {
+        box.innerHTML = `<div class="empty-state">No specific breakdown available for this category (total ${data.total})</div>`;
+        return;
+      }
+
+      const maxE = Math.max(1, ...data.entityBreakdown.map(e => Number(e.count)));
+      box.innerHTML = data.entityBreakdown.map(e => `
+        <div class="cat-row">
+          <div class="cat-name">${e.entity}</div>
+          <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round((e.count / maxE) * 100)}%"></div></div>
+          <div class="cat-count">${e.count}</div>
+        </div>`).join('');
+    } catch (e) {
+      box.innerHTML = '<div class="empty-state">Network error</div>';
+    }
+  }
+
+  function closeCategoryModal() {
+    document.getElementById('categoryModal').classList.remove('active');
+  }
+
+  // ================= Knowledge (RAG) ট্যাব =================
+  async function loadKnowledgeSummary() {
+    const el = document.getElementById('knowledgeSummary');
+    el.innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+      const res = await fetch('/api/admin/ingest-knowledge');
+      const data = await res.json();
+      if (!res.ok) { el.innerHTML = `<div class="empty-state">${data.error || 'Load failed'}</div>`; return; }
+
+      if (data.summary.length === 0) {
+        el.innerHTML = '<div class="empty-state">এখনো কোনো জ্ঞান যোগ করা হয়নি</div>';
+        return;
+      }
+
+      el.innerHTML = `
+        <div style="font-size:13px; color:#64748b; margin-bottom:8px;">মোট ${data.total} টি chunk</div>
+        ${data.summary.map(s => `
+          <div class="cat-row">
+            <div class="cat-name">${s.tradition}</div>
+            <div class="cat-count">${s.chunk_count}</div>
+          </div>
+        `).join('')}
+      `;
+    } catch (e) {
+      el.innerHTML = '<div class="empty-state">Network error</div>';
+    }
+  }
+
+  async function ingestKnowledge() {
+    const tradition = document.getElementById('kTradition').value.trim();
+    const sourceRef = document.getElementById('kSourceRef').value.trim();
+    const text = document.getElementById('kText').value.trim();
+    const resultEl = document.getElementById('ingestResult');
+    const btn = document.getElementById('ingestBtn');
+
+    if (!tradition || !text) {
+      resultEl.innerHTML = '<span style="color:#dc2626;">tradition ও text দুটোই দিতে হবে</span>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = '⏳ Chunking + Embedding চলছে... (বড় টেক্সটে কয়েক মিনিট লাগতে পারে)';
+    resultEl.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/admin/ingest-knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tradition, sourceRef, text })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        resultEl.innerHTML = `<span style="color:#dc2626;">${data.error || 'ব্যর্থ হয়েছে'}</span>`;
+      } else {
+        resultEl.innerHTML = `<span style="color:#16a34a;">✅ ${data.inserted}/${data.totalChunks} chunk সফলভাবে সেভ হয়েছে${data.failed > 0 ? ` (${data.failed} টি ব্যর্থ)` : ''}</span>`;
+        document.getElementById('kText').value = '';
+        loadKnowledgeSummary();
+      }
+    } catch (e) {
+      resultEl.innerHTML = '<span style="color:#dc2626;">Network error</span>';
+    }
+
+    btn.disabled = false;
+    btn.innerText = '⬆️ Chunk করে Embed করে সেভ করুন';
+  }
+</script>
+
+<!-- ================= ক্যাটাগরি ব্রেকডাউন মোডাল ================= -->
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal-box">
+    <h3>Inside Category <button class="modal-close" onclick="closeCategoryModal()">✕</button></h3>
+    <div class="modal-sub">Breakdown of specific items in this category</div>
+    <div class="cat-list" id="categoryModalContent"></div>
+  </div>
+</div>
+
+<!-- ================= সাসপেন্ড ফর্ম মোডাল ================= -->
+<div class="settings-overlay" id="suspendOverlay">
+  <div class="settings-panel">
+    <h3>সাসপেন্ড করুন — সময় নির্ধারণ করুন</h3>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label style="font-size:11px; color:#64748b;">মাস</label>
+        <input type="number" id="suspendMonths" min="0" value="0" style="width:100%; padding:8px; border:1px solid #dbe3ee; border-radius:8px;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:11px; color:#64748b;">দিন</label>
+        <input type="number" id="suspendDays" min="0" value="1" style="width:100%; padding:8px; border:1px solid #dbe3ee; border-radius:8px;">
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <div style="flex:1;">
+        <label style="font-size:11px; color:#64748b;">ঘণ্টা</label>
+        <input type="number" id="suspendHours" min="0" value="0" style="width:100%; padding:8px; border:1px solid #dbe3ee; border-radius:8px;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:11px; color:#64748b;">মিনিট</label>
+        <input type="number" id="suspendMinutes" min="0" value="0" style="width:100%; padding:8px; border:1px solid #dbe3ee; border-radius:8px;">
+      </div>
+    </div>
+    <input type="text" id="suspendReason" placeholder="কারণ (ঐচ্ছিক)" style="width:100%; padding:10px; border:1px solid #dbe3ee; border-radius:8px; margin-bottom:14px;">
+    <button class="refresh-btn" style="width:100%; background:#f59e0b; margin-bottom:8px;" onclick="confirmSuspend()">Suspend করুন</button>
+    <button class="close-settings-btn" onclick="closeSuspendForm()">Cancel</button>
+  </div>
+</div>
+
+</body>
+      </html>
