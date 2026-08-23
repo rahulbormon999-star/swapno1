@@ -161,9 +161,9 @@ body {
 }
 .input-field::placeholder { color: var(--text-secondary); }
 .send-btn {
-  width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--accent); color: white;
-  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: background .2s; margin-bottom: 2px;
+  width: 38px; height: 38px; border-radius: 45%; border: none; background: var(--accent); color: white;
+  font-size: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background .2s; margin-bottom: 2px; padding: 3px;
 }
 .send-btn:active { transform: scale(0.93); }
 .send-btn:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
@@ -249,7 +249,7 @@ body {
     <div class="input-area">
       <div class="input-pill">
         <textarea class="input-field" id="userInput" placeholder="Message Pravax..." rows="1"></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">⇑</button>
       </div>
     </div>
   </div>
