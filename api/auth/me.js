@@ -20,6 +20,24 @@ export default async function handler(req, res) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return res.status(401).json({ error: 'Not logged in' });
 
+  // POST = অ্যালার্ট dismiss করা
+  if (req.method === 'POST') {
+    try {
+      const { action, alertId } = req.body || {};
+      if (action === 'dismiss_alert' && alertId) {
+        await sql`
+          INSERT INTO alert_dismissals (alert_id, user_id) VALUES (${alertId}, ${userId})
+          ON CONFLICT (alert_id, user_id) DO NOTHING
+        `;
+        return res.status(200).json({ success: true });
+      }
+      return res.status(400).json({ error: 'Unknown action' });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
   try {
     const rows = await sql`
       SELECT id, login_source, first_name, last_name, email, phone, profile_picture,
@@ -38,9 +56,18 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: `Your account is suspended until ${until}` + (rows[0].suspend_reason ? `: ${rows[0].suspend_reason}` : '') });
     }
 
-    return res.status(200).json({ user: rows[0] });
+    // এই ইউজারের জন্য প্রাসঙ্গিক (all অথবা তাকে নির্দিষ্টভাবে টার্গেট করা) ও এখনো dismiss না করা অ্যালার্ট
+    const activeAlerts = await sql`
+      SELECT a.id, a.message, a.created_at
+      FROM admin_alerts a
+      WHERE (a.target_type = 'all' OR ${userId} = ANY(a.target_user_ids))
+        AND NOT EXISTS (SELECT 1 FROM alert_dismissals d WHERE d.alert_id = a.id AND d.user_id = ${userId})
+      ORDER BY a.created_at DESC LIMIT 5
+    `;
+
+    return res.status(200).json({ user: rows[0], activeAlerts });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-      }
+}
