@@ -28,6 +28,39 @@ export default async function handler(req, res) {
     }
   }
 
+  // ================= অ্যাডমিন অ্যালার্ট — তৈরি করা ও পাঠানো অ্যালার্টের ইতিহাস দেখা =================
+  if (req.query.view === 'alerts') {
+    try {
+      if (req.method === 'POST') {
+        const { message, targetType, targetUserIds } = req.body || {};
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+          return res.status(400).json({ error: 'message প্রয়োজন' });
+        }
+        const type = targetType === 'specific' ? 'specific' : 'all';
+        const ids = type === 'specific' && Array.isArray(targetUserIds) ? targetUserIds.map(Number) : null;
+        if (type === 'specific' && (!ids || ids.length === 0)) {
+          return res.status(400).json({ error: 'নির্দিষ্ট ইউজার পাঠাতে চাইলে কমপক্ষে একজন সিলেক্ট করতে হবে' });
+        }
+        const created = await sql`
+          INSERT INTO admin_alerts (message, target_type, target_user_ids)
+          VALUES (${message.trim()}, ${type}, ${ids})
+          RETURNING id, created_at
+        `;
+        return res.status(200).json({ success: true, id: created[0].id });
+      }
+
+      const alerts = await sql`
+        SELECT id, message, target_type, target_user_ids, created_at,
+               (SELECT COUNT(*) FROM alert_dismissals WHERE alert_id = admin_alerts.id) AS dismissed_count
+        FROM admin_alerts ORDER BY created_at DESC LIMIT 50
+      `;
+      return res.status(200).json({ alerts });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
   if (req.method === 'POST') return res.status(400).json({ error: 'Unknown POST action' });
 
   // ================= নির্বাচিত audit log এন্ট্রি ডিলিট করা =================
@@ -228,4 +261,4 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
   }
-          }
+                        }
