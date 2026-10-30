@@ -19,7 +19,7 @@ html, body { height: 100%; }
 
 :root {
   --bg-primary: #f9fafb; --bg-secondary: #ffffff; --bubble-user: #f0f2f5;
-  --border: #e5e7eb; --text-primary: #1937; --text-secondary: #6b7280;
+  --border: #e5e7eb; --text-primary: #1f2937; --text-secondary: #6b7280;
   --accent: #2563eb; --accent-light: #dbeafe; --danger: #dc2626;
 }
 body.dark {
@@ -776,8 +776,8 @@ if ('serviceWorker' in navigator) {
 // ================= ভয়েস প্রিসেট (pitch/rate দিয়ে ৫টা আলাদা স্বর — ডিভাইসে একটাই বেস ভয়েস থাকলেও কাজ করে) =================
 const VOICE_PRESETS = [
   { id: 'male',    label: 'Male (Normal)', pitch: 0.9,  rate: 1.0 },
-  { id: 'female',  label: 'Famale (Normal)',  pitch: 1.3,  rate: 1.0 },
-  { id: 'elder',   label: 'elder',              pitch: 0.7,  rate: 0.85 },
+  { id: 'female',  label: 'Female (Normal)',  pitch: 1.3,  rate: 1.0 },
+  { id: 'elder',   label: 'Elder',              pitch: 0.7,  rate: 0.85 },
   { id: 'young',   label: 'Young',   pitch: 1.15, rate: 1.15 },
   { id: 'deep',    label: 'Deep /Slow',         pitch: 0.6,  rate: 0.8 }
 ];
