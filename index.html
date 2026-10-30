@@ -798,7 +798,7 @@ function openVoicePicker() {
   document.getElementById('voicePresetList').innerHTML = VOICE_PRESETS.map(p => `
     <div class="voice-preset-row ${p.id === current ? 'active' : ''}" onclick="selectVoicePreset('${p.id}')">
       <span>${p.label}</span>
-      <span>${p.id === current ? '✓' : '▶ শুনুন'}</span>
+      <span>${p.id === current ? '✓' : '▶ Play'}</span>
     </div>
   `).join('');
   document.getElementById('voicePickerOverlay').classList.add('show');
@@ -809,7 +809,7 @@ function closeVoicePickerBackdrop(e) { if (e.target.id === 'voicePickerOverlay')
 function selectVoicePreset(id) {
   localStorage.setItem(VOICE_KEY, id);
   updateVoiceLabel();
-  speakText('আমি Pravax, আপনাকে সাহায্য করতে প্রস্তুত।');   // নমুনা শোনানো
+  speakText('I am Pravax, ready to help you.');   // নমুনা শোনানো
   openVoicePicker();
 }
 updateVoiceLabel();
